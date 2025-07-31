@@ -2,6 +2,7 @@ import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+// --- FUNGSI UTAMA YANG BERJALAN SETELAH LOGIN ---
 function initializeApp() {
     // --- BAGIAN 1: SELEKSI ELEMEN DOM ---
     const navKesalahan = document.getElementById('nav-kesalahan');
@@ -37,7 +38,7 @@ function initializeApp() {
     // --- KONEKSI KE FIREBASE COLLECTIONS ---
     const errorsCollectionRef = collection(db, "kesalahan");
     const staffCollectionRef = collection(db, "staff");
-
+    
     // --- FUNGSI-FUNGSI UTAMA ---
     function showPage(pageId) {
         [pageKesalahan, pageBoxNama, pageDataStaff, pageTambah].forEach(p => p.style.display = 'none');
@@ -66,7 +67,7 @@ function initializeApp() {
         const data = await getDocs(query(errorsCollectionRef, orderBy('createdAt', 'desc')));
         return data.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
     }
-
+    
     async function saveError(errorData) {
         await addDoc(errorsCollectionRef, { ...errorData, createdAt: serverTimestamp() });
     }
@@ -75,7 +76,7 @@ function initializeApp() {
         const errorDoc = doc(db, "kesalahan", errorId);
         await deleteDoc(errorDoc);
     }
-
+    
     async function deleteAllErrors() {
         const errorsSnapshot = await getDocs(errorsCollectionRef);
         for (const docSnapshot of errorsSnapshot.docs) {
@@ -117,9 +118,9 @@ function initializeApp() {
                     <td>Staff</td>
                     <td>${err.perihal}</td>
                     <td>
-                        <div class="button-wrapper" style="justify-content: center; margin: 0; gap: 10px;">
-                            <button class="btn btn-sm btn__view btn-view-error" data-id="${err.id}"><i class="bi bi-eye-fill"></i></button>
-                            <button class="btn btn-sm btn__danger btn-delete-error" data-id="${err.id}"><i class="bi bi-trash-fill"></i></button>
+                        <div class="btn-action-group">
+                            <button class="btn-action view btn-view-error" data-id="${err.id}"><i class="bi bi-eye-fill"></i></button>
+                            <button class="btn-action delete btn-delete-error" data-id="${err.id}"><i class="bi bi-trash-fill"></i></button>
                         </div>
                     </td>
                 </tr>`;
@@ -185,11 +186,11 @@ function initializeApp() {
         if (staffList.length === 0) { staffTableBody.innerHTML = `<tr><td colspan="10" style="text-align:center; font-style:italic;">Belum ada data staff.</td></tr>`; return; }
         staffList.forEach((staff, index) => {
             let usia = ''; const calculatedAge = calculateAge(staff.tanggalLahir); if (calculatedAge !== null && calculatedAge >= 0) { usia = `${calculatedAge} TAHUN`; }
-            const row = `<tr><td>${index + 1}</td><td>${staff.namaStaff || ''}</td><td>${staff.noPassport || ''}</td><td>${staff.jabatan || ''}</td><td>${staff.tempatLahir || ''}</td><td>${staff.tanggalLahir || ''}</td><td>${usia}</td><td>${staff.emailKerja || ''}</td><td>${staff.adminIdn || ''}</td><td><div class="button-wrapper" style="justify-content: flex-start; margin: 0;"><button class="btn btn-sm btn__view btn-view-staff" data-id="${staff.id}"><i class="bi bi-eye-fill"></i></button><button class="btn btn-sm btn__info btn-edit" data-id="${staff.id}"><i class="bi bi-pencil-fill"></i></button><button class="btn btn-sm btn__danger btn-delete" data-id="${staff.id}"><i class="bi bi-trash-fill"></i></button></div></td></tr>`;
+            const row = `<tr><td>${index + 1}</td><td>${staff.namaStaff || ''}</td><td>${staff.noPassport || ''}</td><td>${staff.jabatan || ''}</td><td>${staff.tempatLahir || ''}</td><td>${staff.tanggalLahir || ''}</td><td>${usia}</td><td>${staff.emailKerja || ''}</td><td>${staff.adminIdn || ''}</td><td><div class="btn-action-group"><button class="btn-action view btn-view-staff" data-id="${staff.id}"><i class="bi bi-eye-fill"></i></button><button class="btn-action edit btn-edit" data-id="${staff.id}"><i class="bi bi-pencil-fill"></i></button><button class="btn-action delete btn-delete" data-id="${staff.id}"><i class="bi bi-trash-fill"></i></button></div></td></tr>`;
             staffTableBody.innerHTML += row;
         });
     }
-
+    
     function openViewModal(staff) { /* ... (Fungsi ini tetap sama) ... */ }
     
     async function exportToExcel() {
@@ -203,8 +204,12 @@ function initializeApp() {
     }
 
     // --- BAGIAN 4: EVENT LISTENERS ---
-    [navKesalahan, navBoxNama, navDataStaff, navTambah].forEach(nav => nav.addEventListener('click', (e) => { e.preventDefault(); showPage(nav.id.split('-')[1]); }));
+    navKesalahan.addEventListener('click', (e) => { e.preventDefault(); showPage('kesalahan'); });
+    navBoxNama.addEventListener('click', (e) => { e.preventDefault(); showPage('boxnama'); });
+    navDataStaff.addEventListener('click', (e) => { e.preventDefault(); showPage('datastaff'); });
+    navTambah.addEventListener('click', (e) => { e.preventDefault(); showPage('tambah'); });
     
+    // EVENT LISTENER YANG DIKEMBALIKAN
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
         const inputText = reportInput.value;
@@ -213,7 +218,10 @@ function initializeApp() {
         await saveError(newError);
         messageArea.innerHTML = '<p style="color: #4CAF50; text-align:center;">Berhasil!</p>';
         form.reset();
-        setTimeout(() => { messageArea.innerHTML = ""; showPage('kesalahan'); }, 1500);
+        setTimeout(() => {
+            messageArea.innerHTML = "";
+            showPage('kesalahan');
+        }, 1500);
     });
 
     clearButton.addEventListener('click', async () => {
