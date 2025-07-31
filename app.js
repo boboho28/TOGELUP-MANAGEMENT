@@ -2,9 +2,9 @@ import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// --- FUNGSI UTAMA YANG AKAN DIJALANKAN SETELAH LOGIN BERHASIL ---
+// --- FUNGSI UTAMA YANG BERJALAN SETELAH LOGIN ---
 function initializeApp() {
-    // --- BAGIAN 1: SELEKSI SEMUA ELEMEN DOM ---
+    // --- BAGIAN 1: SELEKSI ELEMEN DOM ---
     const navKesalahan = document.getElementById('nav-kesalahan');
     const navBoxNama = document.getElementById('nav-boxnama');
     const navDataStaff = document.getElementById('nav-datastaff');
@@ -38,8 +38,8 @@ function initializeApp() {
     // --- KONEKSI KE FIREBASE COLLECTIONS ---
     const errorsCollectionRef = collection(db, "kesalahan");
     const staffCollectionRef = collection(db, "staff");
-    
-    // --- BAGIAN 3: SEMUA FUNGSI APLIKASI ---
+
+    // --- BAGIAN 3: FUNGSI-FUNGSI UTAMA ---
     function showPage(pageId) {
         [pageKesalahan, pageBoxNama, pageDataStaff, pageTambah].forEach(p => p.style.display = 'none');
         [navKesalahan, navBoxNama, navDataStaff, navTambah].forEach(n => n.classList.remove('active'));
@@ -67,7 +67,7 @@ function initializeApp() {
         const data = await getDocs(query(errorsCollectionRef, orderBy('createdAt', 'desc')));
         return data.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
     }
-    
+
     async function saveError(errorData) {
         await addDoc(errorsCollectionRef, { ...errorData, createdAt: serverTimestamp() });
     }
@@ -76,7 +76,7 @@ function initializeApp() {
         const errorDoc = doc(db, "kesalahan", errorId);
         await deleteDoc(errorDoc);
     }
-    
+
     async function deleteAllErrors() {
         const errorsSnapshot = await getDocs(errorsCollectionRef);
         for (const docSnapshot of errorsSnapshot.docs) {
