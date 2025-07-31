@@ -1,3 +1,8 @@
+import { auth, db } from './firebase-config.js';
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+function initializeApp() {
 // --- BAGIAN 1: SELEKSI ELEMEN DOM ---
 const navKesalahan = document.getElementById('nav-kesalahan');
 const navBoxNama = document.getElementById('nav-boxnama');
@@ -269,3 +274,17 @@ exportExcelBtn.addEventListener('click', exportToExcel);
 
 // --- BAGIAN 5: INISIALISASI APLIKASI ---
 showPage('kesalahan');
+}
+
+// --- PEMERIKSAAN AUTENTIKASI ---
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        initializeApp();
+        document.getElementById('logout-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            signOut(auth);
+        });
+    } else {
+        window.location.href = 'login.html';
+    }
+});
