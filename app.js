@@ -2,7 +2,7 @@ import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// --- FUNGSI UTAMA YANG BERJALAN SETELAH LOGIN ---
+// --- FUNGSI UTAMA YANG AKAN DIJALANKAN SETELAH LOGIN BERHASIL ---
 function initializeApp() {
     // --- BAGIAN 1: SELEKSI ELEMEN DOM ---
     const navKesalahan = document.getElementById('nav-kesalahan');
@@ -266,7 +266,8 @@ function initializeApp() {
         const target = event.target.closest('button');
         if (!target) return;
         const id = target.dataset.id;
-        const staffList = await getStoredStaff();
+        // Ganti getStoredStaff() menjadi getDocs(staffCollectionRef) agar tidak perlu memanggil fungsi async
+        const staffList = (await getDocs(staffCollectionRef)).docs.map(doc => ({...doc.data(), id: doc.id}));
         const staffToActOn = staffList.find(s => s.id === id);
         if (!staffToActOn) return;
         if (target.classList.contains('btn-view-staff')) {
