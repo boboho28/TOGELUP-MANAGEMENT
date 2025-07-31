@@ -15,7 +15,7 @@ body {
 .nav-container { width: 100%; max-width: 1400px; display: flex; justify-content: space-between; align-items: center; }
 .navbar-brand { font-weight: bold; color: white; text-decoration: none; font-size: 1.2em; }
 .navbar-links { display: flex; gap: 10px; }
-.nav-link { color: hsl(144 50 94 / 70%); text-decoration: none; padding: 10px 15px; border-radius: 99em; transition: background-color 0.3s, color 0.3s; cursor: pointer; }
+.nav-link { color: hsl(144 50 94 / 70%); text-decoration: none; padding: 10px 15px; border-radius: 99em; transition: background-color 0.3s, color 0.3s; }
 .nav-link:hover, .nav-link.active { background-color: hsla(144deg 50% 50% / 100%); color: white; }
 .card { background: rgba(38, 38, 38, 0.7); border: 1px solid hsl(144 50 0 / 90%); border-radius: 10px; margin-bottom: 20px; backdrop-filter: blur(5px); }
 .card-header { background: hsla(144deg 10% 22% / 35%); padding: 15px; font-weight: bold; font-size: 1.2em; border-bottom: 1px solid hsl(144 50 0 / 90%); }
@@ -32,14 +32,16 @@ body {
 .summary-box.telat { --btn-inner: hsla(190, 60%, 40%, 0.8); --btn-outer: hsla(190, 70%, 30%, 0.8); --glow-color: hsl(190, 83%, 60%); }
 .summary-box.other { --btn-inner: hsla(45, 60%, 40%, 0.8); --btn-outer: hsla(45, 70%, 30%, 0.8); --glow-color: hsl(45, 83%, 60%); }
 
-/* --- GAYA TOMBOL KONSISTEN --- */
+/* --- GAYA TOMBOL KONSISTEN (PERBAIKAN UTAMA DI SINI) --- */
 .button-wrapper { display: flex; justify-content: center; margin-top: 20px; gap: 15px; }
 .btn {
     --btn-inner: hsla(144deg 10% 22% / 35%); --btn-outer: hsla(144deg 10% 22% / 25%);
     position: relative; z-index: 1; background: radial-gradient(var(--btn-inner), var(--btn-outer)); border: none; font-family: 'Raleway', sans-serif;
     letter-spacing: 0.04em; color: hsl(144 50 94 / 70%); border-radius: 99em; text-shadow: 0 -1px hsl(144 50 30 / 40%);
     box-shadow: inset 0 4px 1px -3px hsl(144 50 100 / 10%), inset 0 17px 2px -16px hsl(144 100 80 / 0%), inset 0 4px 8px 5px hsl(144 8 4 / 16%), 0 2px 0 1px hsl(144 8 11 / 100%), 0 2px 0 3px hsl(144 50 0 / 90%);
-    transition: all 200ms ease; cursor: pointer; width: 240px; height: 60px; font-size: 20px;
+    transition: all 200ms ease; cursor: pointer;
+    /* Ukuran default */
+    width: 240px; height: 60px; font-size: 20px;
     display: inline-flex; align-items: center; justify-content: center;
 }
 .btn:hover {
@@ -48,12 +50,22 @@ body {
     text-shadow: 0 -1px hsl(144 50 30 / 40%), 0 0 4px hsl(144 50 100 / 40%); transform: translateY(-1px);
 }
 .btn:active { transform: translateY(2px); box-shadow: inset 0 -1px 2px 1px hsl(144 50 100 / 30%), inset 0 0 24px hsl(144 50 20 / 30%), 0 0px 0 1px hsl(144 83 60 / 70%), 0 0px 0 3px hsl(144 50 0 / 50%); }
+
+/* Variasi Warna */
 .btn.btn__primary { --btn-inner: hsla(144, 50%, 40%, 0.7); --btn-outer: hsla(144, 60%, 30%, 0.7); }
 .btn.btn__danger { --btn-inner: hsla(0, 50%, 40%, 0.7); --btn-outer: hsla(0, 60%, 30%, 0.7); }
 .btn.btn__info { --btn-inner: hsla(190, 50%, 40%, 0.7); --btn-outer: hsla(190, 60%, 30%, 0.7); }
 .btn.btn__view { --btn-inner: hsla(220, 50%, 40%, 0.7); --btn-outer: hsla(220, 60%, 30%, 0.7); }
+/* Saat di-hover, semua warna menjadi hijau terang */
 .btn.btn__primary:hover, .btn.btn__danger:hover, .btn.btn__info:hover, .btn.btn__view:hover { --btn-inner: hsla(144deg 50% 50% / 100%); --btn-outer: hsla(144deg 83% 50% / 100%); }
-.btn.btn-sm { width: 40px; height: 40px; font-size: 16px; padding: 0; }
+
+/* Variasi Ukuran untuk Tombol Aksi di Tabel */
+.btn.btn-sm {
+    width: 40px; /* Lebar tetap */
+    height: 40px; /* Tinggi tetap */
+    font-size: 16px; /* Ukuran ikon */
+    padding: 0; /* Hapus padding agar ikon pas di tengah */
+}
 
 /* --- ELEMEN LAIN-LAIN --- */
 .filter-grid { display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 15px; margin-bottom: 30px; }
