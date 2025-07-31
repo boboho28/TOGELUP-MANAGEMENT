@@ -15,7 +15,7 @@ body {
 .nav-container { width: 100%; max-width: 1400px; display: flex; justify-content: space-between; align-items: center; }
 .navbar-brand { font-weight: bold; color: white; text-decoration: none; font-size: 1.2em; }
 .navbar-links { display: flex; gap: 10px; }
-.nav-link { color: hsl(144 50 94 / 70%); text-decoration: none; padding: 10px 15px; border-radius: 99em; transition: background-color 0.3s, color 0.3s; }
+.nav-link { color: hsl(144 50 94 / 70%); text-decoration: none; padding: 10px 15px; border-radius: 99em; transition: background-color 0.3s, color 0.3s; cursor: pointer; }
 .nav-link:hover, .nav-link.active { background-color: hsla(144deg 50% 50% / 100%); color: white; }
 .card { background: rgba(38, 38, 38, 0.7); border: 1px solid hsl(144 50 0 / 90%); border-radius: 10px; margin-bottom: 20px; backdrop-filter: blur(5px); }
 .card-header { background: hsla(144deg 10% 22% / 35%); padding: 15px; font-weight: bold; font-size: 1.2em; border-bottom: 1px solid hsl(144 50 0 / 90%); }
@@ -32,16 +32,14 @@ body {
 .summary-box.telat { --btn-inner: hsla(190, 60%, 40%, 0.8); --btn-outer: hsla(190, 70%, 30%, 0.8); --glow-color: hsl(190, 83%, 60%); }
 .summary-box.other { --btn-inner: hsla(45, 60%, 40%, 0.8); --btn-outer: hsla(45, 70%, 30%, 0.8); --glow-color: hsl(45, 83%, 60%); }
 
-/* --- GAYA TOMBOL KONSISTEN (PERBAIKAN UTAMA DI SINI) --- */
+/* --- GAYA TOMBOL KONSISTEN --- */
 .button-wrapper { display: flex; justify-content: center; margin-top: 20px; gap: 15px; }
 .btn {
     --btn-inner: hsla(144deg 10% 22% / 35%); --btn-outer: hsla(144deg 10% 22% / 25%);
     position: relative; z-index: 1; background: radial-gradient(var(--btn-inner), var(--btn-outer)); border: none; font-family: 'Raleway', sans-serif;
     letter-spacing: 0.04em; color: hsl(144 50 94 / 70%); border-radius: 99em; text-shadow: 0 -1px hsl(144 50 30 / 40%);
     box-shadow: inset 0 4px 1px -3px hsl(144 50 100 / 10%), inset 0 17px 2px -16px hsl(144 100 80 / 0%), inset 0 4px 8px 5px hsl(144 8 4 / 16%), 0 2px 0 1px hsl(144 8 11 / 100%), 0 2px 0 3px hsl(144 50 0 / 90%);
-    transition: all 200ms ease; cursor: pointer;
-    /* Ukuran default */
-    width: 240px; height: 60px; font-size: 20px;
+    transition: all 200ms ease; cursor: pointer; width: 240px; height: 60px; font-size: 20px;
     display: inline-flex; align-items: center; justify-content: center;
 }
 .btn:hover {
@@ -50,22 +48,12 @@ body {
     text-shadow: 0 -1px hsl(144 50 30 / 40%), 0 0 4px hsl(144 50 100 / 40%); transform: translateY(-1px);
 }
 .btn:active { transform: translateY(2px); box-shadow: inset 0 -1px 2px 1px hsl(144 50 100 / 30%), inset 0 0 24px hsl(144 50 20 / 30%), 0 0px 0 1px hsl(144 83 60 / 70%), 0 0px 0 3px hsl(144 50 0 / 50%); }
-
-/* Variasi Warna */
 .btn.btn__primary { --btn-inner: hsla(144, 50%, 40%, 0.7); --btn-outer: hsla(144, 60%, 30%, 0.7); }
 .btn.btn__danger { --btn-inner: hsla(0, 50%, 40%, 0.7); --btn-outer: hsla(0, 60%, 30%, 0.7); }
 .btn.btn__info { --btn-inner: hsla(190, 50%, 40%, 0.7); --btn-outer: hsla(190, 60%, 30%, 0.7); }
 .btn.btn__view { --btn-inner: hsla(220, 50%, 40%, 0.7); --btn-outer: hsla(220, 60%, 30%, 0.7); }
-/* Saat di-hover, semua warna menjadi hijau terang */
 .btn.btn__primary:hover, .btn.btn__danger:hover, .btn.btn__info:hover, .btn.btn__view:hover { --btn-inner: hsla(144deg 50% 50% / 100%); --btn-outer: hsla(144deg 83% 50% / 100%); }
-
-/* Variasi Ukuran untuk Tombol Aksi di Tabel */
-.btn.btn-sm {
-    width: 40px; /* Lebar tetap */
-    height: 40px; /* Tinggi tetap */
-    font-size: 16px; /* Ukuran ikon */
-    padding: 0; /* Hapus padding agar ikon pas di tengah */
-}
+.btn.btn-sm { width: 40px; height: 40px; font-size: 16px; padding: 0; }
 
 /* --- ELEMEN LAIN-LAIN --- */
 .filter-grid { display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 15px; margin-bottom: 30px; }
@@ -81,3 +69,25 @@ tbody tr:hover { background: hsla(144deg 50% 50% / 20%); }
 .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);backdrop-filter:blur(5px);display:flex;justify-content:center;align-items:center;z-index:1000}.modal-content{background:#262626;border:1px solid hsl(144 50 0 / 90%);border-radius:10px;padding:30px;width:90%;max-width:800px;position:relative;box-shadow:0 5px 25px rgba(0,0,0,.5);max-height:90vh;overflow-y:auto}.modal-close{position:absolute;top:15px;right:20px;font-size:2em;color:#aaa;cursor:pointer;transition:color .3s}.modal-close:hover{color:#fff}.modal-content h3{text-align:center;margin-top:0;margin-bottom:25px;color:#fff}.staff-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.form-group-full{grid-column:1 / -1}select{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-image:url("data:image/svg+xml;charset=UTF8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");background-repeat:no-repeat;background-position:right 10px center;background-size:1em}
 .view-group label{font-size:.9em;color:hsl(144 50 94 / 60%)}.view-group p{background:#1a1a1a;border:1px solid hsl(144 50 0 / 90%);border-radius:5px;padding:10px;margin:5px 0 0;min-height:40px;color:#fff;font-weight:700}
 #view-error-report{background:#1a1a1a;border:1px solid hsl(144 50 0 / 90%);border-radius:5px;padding:15px;color:#c5c5c5;white-space:pre-wrap;word-break:break-all;max-height:50vh;overflow-y:auto}
+
+/* GAYA LOGIN */
+.login-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; background-color: #1e1e1e; }
+.login-box { width: 100%; max-width: 500px; background: transparent; }
+.login-box h2 { text-align: left; margin-top: 0; margin-bottom: 30px; color: white; font-size: 1.8em; font-weight: 700; }
+.login-box .form-group { margin-bottom: 25px; }
+.login-box input[type="email"], .login-box input[type="password"] { background: #333; border: 1px solid #555; border-radius: 8px; padding: 15px; color: white; font-size: 1.1em; }
+.login-box input[type="email"]:focus, .login-box input[type="password"]:focus { border-color: #0b5e34; outline: none; }
+.login-box .btn { width: 100%; padding: 15px; font-size: 1.1em; background-color: #2b2b2b; border: 1px solid #555; }
+.login-box .btn:hover { background-color: #0b5e34; border-color: #0b5e34; }
+.error-message { color: #ff4d4d; text-align: left; margin-top: -10px; margin-bottom: 20px; font-size: 0.9em; }
+
+/* GAYA LOADING SCREEN */
+.app-loader-container {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; justify-content: center; align-items: center;
+    background-color: #1e1e1e;
+    background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 100% 3em; color: #c5c5c5; font-size: 1.2em; z-index: 2000;
+    animation: fadeIn 0.5s ease-in-out;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
