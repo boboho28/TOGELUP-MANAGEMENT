@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TogelUp Management</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <nav class="navbar-top">
+        <div class="nav-container">
+            <a class="navbar-brand" href="#">TOGELUP MANAGEMENT</a>
+            <div class="navbar-links">
+                <a class="nav-link active" href="#" id="nav-kesalahan"><i class="bi bi-exclamation-triangle-fill"></i> KESALAHAN</a>
+                <a class="nav-link" href="#" id="nav-boxnama"><i class="bi bi-person-badge"></i> BOX NAMA</a>
+                <a class="nav-link" href="#" id="nav-datastaff"><i class="bi bi-people-fill"></i> DATA STAFF</a>
+                <a class="nav-link" href="#" id="nav-tambah"><i class="bi bi-plus-circle-fill"></i> TAMBAH</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-container">
+        <!-- HALAMAN KESALAHAN -->
+        <section id="page-kesalahan">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-triangle-fill"></i> Rekapan Kesalahan Staff</div>
+                <div class="card-body">
+                    <div class="filter-grid">
+                        <div class="filter-item"><label for="fromDate">From Date</label><input type="date" id="fromDate"></div>
+                        <div class="filter-item"><label for="toDate">To Date</label><input type="date" id="toDate"></div>
+                        <div class="filter-item filter-item-wide"><label for="employee-search">Cari Nama Staff</label><input type="text" id="employee-search" placeholder="Ketik nama untuk mencari..."></div>
+                    </div>
+                    <div class="summary-grid">
+                        <div class="summary-box deposit"><span class="summary-title">Kesalahan Deposit</span><span class="summary-count" id="deposit-errors">0</span></div>
+                        <div class="summary-box withdraw"><span class="summary-title">Kesalahan Withdraw</span><span class="summary-count" id="withdraw-errors">0</span></div>
+                        <div class="summary-box telat"><span class="summary-title">Telat</span><span class="summary-count" id="late-arrivals">0</span></div>
+                        <div class="summary-box other"><span class="summary-title">Other Errors</span><span class="summary-count" id="other-errors">0</span></div>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Tanggal</th>
+                                    <th>Nama Staff</th>
+                                    <th>Jabatan</th>
+                                    <th>Kesalahan</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="errors-table-body"></tbody>
+                        </table>
+                    </div>
+                    <div class="button-wrapper">
+                        <!-- === PERUBAHAN DI SINI === -->
+                        <button id="export-all-data" class="btn btn__info">Export Data (Bagikan)</button>
+                        <button id="import-all-data" class="btn btn__primary">Import Data</button>
+                        <button id="clear-data" class="btn btn__danger">Hapus Data Kesalahan</button>
+                        <!-- Input file tersembunyi untuk import -->
+                        <input type="file" id="import-file-input" style="display: none;" accept=".json">
+                        <!-- === AKHIR PERUBAHAN === -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- HALAMAN BOX NAMA -->
+        <section id="page-boxnama" style="display: none;">
+            <div class="card"><div class="card-header"><i class="bi bi-person-badge"></i> Ringkasan Kesalahan per Staff</div><div class="card-body"><div id="staff-summary-container"></div></div></div>
+        </section>
+
+        <!-- HALAMAN DATA STAFF -->
+        <section id="page-datastaff" style="display: none;">
+             <div class="card">
+                <div class="card-header"><i class="bi bi-people-fill"></i> Database Staff</div>
+                <div class="card-body">
+                    <div class="button-wrapper" style="justify-content: flex-start; margin-bottom: 20px;">
+                        <button id="add-staff-btn" class="btn btn__primary">Tambah Staff Baru</button>
+                        <button id="export-excel-btn" class="btn btn__primary">Export to Excel</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>NO</th><th>NAMA STAFF</th><th>No Passport</th><th>JABATAN</th><th>Tempat Lahir</th><th>Tanggal Lahir</th><th>Usia</th><th>Email Kerja</th><th>Admin IDN</th><th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="staff-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- HALAMAN TAMBAH KESALAHAN -->
+        <section id="page-tambah" style="display: none;">
+             <div class="card"><div class="card-header"><i class="bi bi-clipboard-plus"></i> Salin & Tempel Laporan</div><div class="card-body"><form id="auto-parser-form"><textarea id="report-input" placeholder="Tempelkan seluruh teks laporan di sini..."></textarea><div class="button-wrapper"><button type="submit" class="btn btn__primary">Proses & Simpan</button></div></form><div id="message-area"></div></div></div>
+        </section>
+    </main>
+
+    <!-- Modal 1: FORM UNTUK EDIT/TAMBAH DATA STAFF -->
+    <div id="staff-form-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <span class="modal-close">×</span>
+            <h3 id="modal-title">Tambah Staff Baru</h3>
+            <form id="staff-form">
+                <input type="hidden" id="staff-id">
+                <div class="staff-form-grid">
+                    <div class="form-group"><label>Nama Staff</label><input type="text" id="nama-staff" required></div>
+                    <div class="form-group"><label>No Passport</label><input type="text" id="no-passport"></div>
+                    <div class="form-group"><label>Jabatan</label><input type="text" id="jabatan"></div>
+                    <div class="form-group"><label>Tempat Lahir</label><input type="text" id="tempat-lahir"></div>
+                    <div class="form-group"><label>Tanggal Lahir</label><input type="text" id="tanggal-lahir" placeholder="dd/mm/yyyy"></div>
+                    <div class="form-group"><label>Jenis Kelamin</label><select id="jenis-kelamin"><option value="Laki-laki">Laki-laki</option><option value="Perempuan">Perempuan</option></select></div>
+                    <div class="form-group"><label>Nomor Kamar Mess</label><input type="text" id="kamar-mess"></div>
+                    <div class="form-group"><label>Tanggal Bergabung SMB</label><input type="text" id="tgl-gabung-smb" placeholder="dd/mm/yyyy"></div>
+                    <div class="form-group"><label>Join TogelUp</label><input type="text" id="join-togelup" placeholder="dd/mm/yyyy"></div>
+                    <div class="form-group"><label>Jam Kerja</label><input type="text" id="jam-kerja" placeholder="Contoh: 08:00 - 17:00"></div>
+                    <div class="form-group"><label>Admin IDN</label><input type="text" id="admin-idn"></div>
+                    <div class="form-group"><label>Admin Power</label><input type="text" id="admin-power"></div>
+                    <div class="form-group form-group-full"><label>Email Kerja</label><input type="email" id="email-kerja"></div>
+                </div>
+                <div class="button-wrapper">
+                    <button type="submit" class="btn btn__primary">Simpan Data</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Modal 2: MODAL UNTUK LIHAT DETAIL DATA STAFF -->
+    <div id="staff-view-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <span class="modal-close">×</span>
+            <h3 id="view-modal-title">Lihat Data Staff</h3>
+            <div class="staff-form-grid">
+                <div class="view-group"><label>Nama Staff</label><p id="view-nama-staff"></p></div>
+                <div class="view-group"><label>No Passport</label><p id="view-no-passport"></p></div>
+                <div class="view-group"><label>Jabatan</label><p id="view-jabatan"></p></div>
+                <div class="view-group"><label>Tempat Lahir</label><p id="view-tempat-lahir"></p></div>
+                <div class="view-group"><label>Tanggal Lahir</label><p id="view-tanggal-lahir"></p></div>
+                <div class="view-group"><label>Usia</label><p id="view-usia"></p></div>
+                <div class="view-group"><label>Jenis Kelamin</label><p id="view-jenis-kelamin"></p></div>
+                <div class="view-group"><label>Nomor Kamar Mess</label><p id="view-kamar-mess"></p></div>
+                <div class="view-group"><label>Tanggal Bergabung SMB</label><p id="view-tgl-gabung-smb"></p></div>
+                <div class="view-group"><label>Masa Kerja SMB</label><p id="view-masa-kerja"></p></div>
+                <div class="view-group"><label>Join TogelUp</label><p id="view-join-togelup"></p></div>
+                <div class="view-group"><label>Jam Kerja</label><p id="view-jam-kerja"></p></div>
+                <div class="view-group"><label>Admin IDN</label><p id="view-admin-idn"></p></div>
+                <div class="view-group"><label>Admin Power</label><p id="view-admin-power"></p></div>
+                <div class="view-group form-group-full"><label>Email Kerja</label><p id="view-email-kerja"></p></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 3: MODAL BARU UNTUK LIHAT DETAIL KESALAHAN (READ-ONLY) -->
+    <div id="error-view-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <span class="modal-close">×</span>
+            <h3 id="error-view-modal-title">Detail Laporan Kesalahan</h3>
+            <pre id="view-error-report"></pre>
+        </div>
+    </div>
+    
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="app.js" defer></script>
+</body>
+</html>
