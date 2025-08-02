@@ -33,6 +33,9 @@ function initializeApp(isViewer) {
     const closeViewModalBtn = document.querySelector('#staff-view-modal .modal-close');
     const errorViewModal = document.getElementById('error-view-modal');
     const closeErrorViewModalBtn = document.querySelector('#error-view-modal .modal-close');
+    // === ELEMEN BARU DITAMBAHKAN ===
+    const staffNameSearchEl = document.getElementById('staff-name-search');
+
 
     // --- KONEKSI KE FIREBASE COLLECTIONS ---
     const errorsCollectionRef = collection(db, "kesalahan");
@@ -190,12 +193,18 @@ function initializeApp(isViewer) {
     
     async function renderStaffTable() {
         staffTableBody.innerHTML = '';
-        const staffList = await getStoredStaff();
+        let staffList = await getStoredStaff();
 
-        // 1. Tentukan urutan prioritas jabatan
+        // === LOGIKA BARU: Filter berdasarkan pencarian nama ===
+        const searchTerm = staffNameSearchEl.value.toLowerCase();
+        if (searchTerm) {
+            staffList = staffList.filter(staff =>
+                staff.namaStaff && staff.namaStaff.toLowerCase().includes(searchTerm)
+            );
+        }
+
         const jabatanOrder = { 'CS': 1, 'KAPTEN': 2, 'KASIR': 3 };
 
-        // 2. Urutkan daftar staff berdasarkan jabatan, lalu berdasarkan waktu input
         staffList.sort((a, b) => {
             const jabatanA = a.jabatan?.toUpperCase() || 'ZZZ';
             const jabatanB = b.jabatan?.toUpperCase() || 'ZZZ';
@@ -204,9 +213,8 @@ function initializeApp(isViewer) {
             const priorityB = jabatanOrder[jabatanB] || 99;
 
             if (priorityA !== priorityB) {
-                return priorityA - priorityB; // Urutkan berdasarkan prioritas jabatan
+                return priorityA - priorityB;
             } else {
-                // Jika jabatannya sama, urutkan berdasarkan waktu input (terlama di atas)
                 const timeA = a.createdAt?.toMillis() || 0;
                 const timeB = b.createdAt?.toMillis() || 0;
                 return timeA - timeB;
@@ -214,28 +222,24 @@ function initializeApp(isViewer) {
         });
 
         if (staffList.length === 0) {
-            staffTableBody.innerHTML = `<tr><td colspan="10" style="text-align:center; font-style:italic;">Belum ada data staff.</td></tr>`;
+            staffTableBody.innerHTML = `<tr><td colspan="10" style="text-align:center; font-style:italic;">Tidak ada data staff yang cocok.</td></tr>`;
             return;
         }
 
-        // 3. Render tabel dan sisipkan baris pemisah
         let lastJabatan = null;
         staffList.forEach((staff, index) => {
             const currentJabatan = staff.jabatan || 'Lain-lain';
 
-            // Jika jabatan saat ini berbeda dengan jabatan sebelumnya (dan bukan iterasi pertama), tambahkan pemisah
             if (index > 0 && currentJabatan !== lastJabatan) {
                 const separatorRow = `<tr class="jabatan-separator"><td colspan="10"></td></tr>`;
                 staffTableBody.innerHTML += separatorRow;
             }
 
-            // Render baris data staff
             let usia = ''; const calculatedAge = calculateAge(staff.tanggalLahir); if (calculatedAge !== null && calculatedAge >= 0) { usia = `${calculatedAge} TAHUN`; }
             const actionButtonsHTML = !isViewer ? `<button class="btn btn-sm btn__info btn-edit" data-id="${staff.id}"><i class="bi bi-pencil-fill"></i></button><button class="btn btn-sm btn__danger btn-delete" data-id="${staff.id}"><i class="bi bi-trash-fill"></i></button>` : '';
             const row = `<tr><td>${index + 1}</td><td>${staff.namaStaff || ''}</td><td>${staff.noPassport || ''}</td><td>${staff.jabatan || ''}</td><td>${staff.tempatLahir || ''}</td><td>${staff.tanggalLahir || ''}</td><td>${usia}</td><td>${staff.emailKerja || ''}</td><td>${staff.adminIdn || ''}</td><td><div class="button-wrapper" style="justify-content: flex-start; margin: 0; gap: 5px;"><button class="btn btn-sm btn__view btn-view-staff" data-id="${staff.id}"><i class="bi bi-eye-fill"></i></button>${actionButtonsHTML}</div></td></tr>`;
             staffTableBody.innerHTML += row;
 
-            // Perbarui jabatan terakhir untuk iterasi berikutnya
             lastJabatan = currentJabatan;
         });
     }
@@ -296,6 +300,10 @@ function initializeApp(isViewer) {
     });
 
     [fromDateEl, toDateEl, employeeSearchEl].forEach(el => el.addEventListener('input', updateDashboard));
+    
+    // === EVENT LISTENER BARU DITAMBAHKAN ===
+    staffNameSearchEl.addEventListener('input', renderStaffTable);
+    
     addStaffBtn.addEventListener('click', () => { if(isViewer) return; staffForm.reset(); document.getElementById('staff-id').value = ''; modalTitle.textContent = 'Tambah Staff Baru'; staffFormModal.style.display = 'flex'; });
     closeFormModalBtn.addEventListener('click', () => { staffFormModal.style.display = 'none'; });
     window.addEventListener('click', (event) => { if (event.target == staffFormModal) { staffFormModal.style.display = 'none'; } });
