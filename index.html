@@ -82,7 +82,10 @@
 
             <section id="page-livechat" style="display: none;">
                 <div class="card">
-                    <div class="card-header"><i class="bi bi-chat-dots-fill"></i> Data Kesalahan CS Livechat (Periode 3)</div>
+                    <div class="card-header card-header-container">
+                        <span><i class="bi bi-chat-dots-fill"></i> Data Kesalahan CS Livechat (Periode 3)</span>
+                        <button id="show-total-errors-btn" class="btn btn__primary btn-header">Lihat Total Kesalahan</button>
+                    </div>
                     <div class="card-body">
                         <div class="table-container">
                             <table>
@@ -108,6 +111,26 @@
         <div id="staff-form-modal" class="modal-overlay" style="display: none;"><div class="modal-content"><span class="modal-close">×</span><h3 id="modal-title">Tambah Staff Baru</h3><form id="staff-form"><input type="hidden" id="staff-id"><div class="staff-form-grid"><div class="form-group"><label>Nama Staff</label><input type="text" id="nama-staff" required></div><div class="form-group"><label>No Passport</label><input type="text" id="no-passport"></div><div class="form-group"><label>Jabatan</label><input type="text" id="jabatan"></div><div class="form-group"><label>Tempat Lahir</label><input type="text" id="tempat-lahir"></div><div class="form-group"><label>Tanggal Lahir</label><input type="text" id="tanggal-lahir" placeholder="dd/mm/yyyy"></div><div class="form-group"><label>Jenis Kelamin</label><select id="jenis-kelamin"><option value="Laki-laki">Laki-laki</option><option value="Perempuan">Perempuan</option></select></div><div class="form-group"><label>Nomor Kamar Mess</label><input type="text" id="kamar-mess"></div><div class="form-group"><label>Tanggal Bergabung SMB</label><input type="text" id="tgl-gabung-smb" placeholder="dd/mm/yyyy"></div><div class="form-group"><label>Join TogelUp</label><input type="text" id="join-togelup" placeholder="dd/mm/yyyy"></div><div class="form-group"><label>Jam Kerja</label><input type="text" id="jam-kerja" placeholder="Contoh: 08:00 - 17:00"></div><div class="form-group"><label>Admin IDN</label><input type="text" id="admin-idn"></div><div class="form-group"><label>Admin Power</label><input type="text" id="admin-power"></div><div class="form-group form-group-full"><label>Email Kerja</label><input type="email" id="email-kerja"></div></div><div class="button-wrapper"><button type="submit" class="btn btn__primary">Simpan Data</button></div></form></div></div>
         <div id="staff-view-modal" class="modal-overlay" style="display: none;"><div class="modal-content"><span class="modal-close">×</span><h3 id="view-modal-title">Lihat Data Staff</h3><div class="staff-form-grid"><div class="view-group"><label>Nama Staff</label><p id="view-nama-staff"></p></div><div class="view-group"><label>No Passport</label><p id="view-no-passport"></p></div><div class="view-group"><label>Jabatan</label><p id="view-jabatan"></p></div><div class="view-group"><label>Tempat Lahir</label><p id="view-tempat-lahir"></p></div><div class="view-group"><label>Tanggal Lahir</label><p id="view-tanggal-lahir"></p></div><div class="view-group"><label>Usia</label><p id="view-usia"></p></div><div class="view-group"><label>Jenis Kelamin</label><p id="view-jenis-kelamin"></p></div><div class="view-group"><label>Nomor Kamar Mess</label><p id="view-kamar-mess"></p></div><div class="view-group"><label>Tanggal Bergabung SMB</label><p id="view-tgl-gabung-smb"></p></div><div class="view-group"><label>Masa Kerja SMB</label><p id="view-masa-kerja"></p></div><div class="view-group"><label>Join TogelUp</label><p id="view-join-togelup"></p></div><div class="view-group"><label>Jam Kerja</label><p id="view-jam-kerja"></p></div><div class="view-group"><label>Admin IDN</label><p id="view-admin-idn"></p></div><div class="view-group"><label>Admin Power</label><p id="view-admin-power"></p></div><div class="view-group form-group-full"><label>Email Kerja</label><p id="view-email-kerja"></p></div></div></div></div>
         <div id="error-view-modal" class="modal-overlay" style="display: none;"><div class="modal-content"><span class="modal-close">×</span><h3 id="error-view-modal-title">Detail Laporan Kesalahan</h3><pre id="view-error-report"></pre></div></div>
+        
+        <div id="total-errors-modal" class="modal-overlay" style="display: none;">
+            <div class="modal-content">
+                <span class="modal-close">×</span>
+                <h3>Total Kesalahan per Staff</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nama Staff</th>
+                                <th>Total Kesalahan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="total-errors-table-body">
+                            <!-- Data total kesalahan akan dimuat di sini -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
     
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
