@@ -91,3 +91,10 @@ tbody tr:hover { background: hsla(144deg 50% 50% / 20%); }
     animation: fadeIn 0.5s ease-in-out;
 }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* --- GAYA UNTUK PEMISAH JABATAN --- */
+.jabatan-separator td {
+    padding: 8px 0 !important;
+    border-bottom: 2px solid hsl(144, 50%, 40%) !important;
+    line-height: 0;
+}
