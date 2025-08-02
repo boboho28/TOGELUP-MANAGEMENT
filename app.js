@@ -8,10 +8,12 @@ function initializeApp(isViewer) {
     const navBoxNama = document.getElementById('nav-boxnama');
     const navDataStaff = document.getElementById('nav-datastaff');
     const navTambah = document.getElementById('nav-tambah');
+    const navLivechat = document.getElementById('nav-livechat');
     const pageKesalahan = document.getElementById('page-kesalahan');
     const pageBoxNama = document.getElementById('page-boxnama');
     const pageDataStaff = document.getElementById('page-datastaff');
     const pageTambah = document.getElementById('page-tambah');
+    const pageLivechat = document.getElementById('page-livechat');
     const form = document.getElementById('auto-parser-form');
     const reportInput = document.getElementById('report-input');
     const messageArea = document.getElementById('message-area');
@@ -33,9 +35,8 @@ function initializeApp(isViewer) {
     const closeViewModalBtn = document.querySelector('#staff-view-modal .modal-close');
     const errorViewModal = document.getElementById('error-view-modal');
     const closeErrorViewModalBtn = document.querySelector('#error-view-modal .modal-close');
-    // === ELEMEN BARU DITAMBAHKAN ===
     const staffNameSearchEl = document.getElementById('staff-name-search');
-
+    const livechatTableBody = document.getElementById('livechat-table-body');
 
     // --- KONEKSI KE FIREBASE COLLECTIONS ---
     const errorsCollectionRef = collection(db, "kesalahan");
@@ -54,17 +55,60 @@ function initializeApp(isViewer) {
 
     // --- FUNGSI-FUNGSI UTAMA ---
     function showPage(pageId) {
-        [pageKesalahan, pageBoxNama, pageDataStaff, pageTambah].forEach(p => p.style.display = 'none');
-        [navKesalahan, navBoxNama, navDataStaff, navTambah].forEach(n => n.classList.remove('active'));
+        [pageKesalahan, pageBoxNama, pageDataStaff, pageTambah, pageLivechat].forEach(p => p.style.display = 'none');
+        [navKesalahan, navBoxNama, navDataStaff, navTambah, navLivechat].forEach(n => n.classList.remove('active'));
         let pageToShow, navToActivate;
         switch (pageId) {
             case 'boxnama': pageToShow = pageBoxNama; navToActivate = navBoxNama; renderStaffSummary(); break;
             case 'datastaff': pageToShow = pageDataStaff; navToActivate = navDataStaff; renderStaffTable(); break;
+            case 'livechat': pageToShow = pageLivechat; navToActivate = navLivechat; fetchAndRenderLivechatData(); break;
             case 'tambah': pageToShow = pageTambah; navToActivate = navTambah; break;
             default: pageToShow = pageKesalahan; navToActivate = navKesalahan; updateDashboard(); break;
         }
         pageToShow.style.display = 'block';
         navToActivate.classList.add('active');
+    }
+
+    async function fetchAndRenderLivechatData() {
+        const sheetId = '1gb8-AjivH0rREvtysuGKcM-EQ7wtQ1AOvjrHm18GGgs';
+        const sheetName = encodeURIComponent('DATA ASLI PERIODE 3');
+        const googleSheetUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${sheetName}`;
+
+        livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center;">Mengambil data...</td></tr>`;
+
+        try {
+            const response = await fetch(googleSheetUrl);
+            if (!response.ok) {
+                throw new Error(`Gagal mengambil data dari Google Sheet. Status: ${response.status}`);
+            }
+            const csvText = await response.text();
+            
+            const rows = csvText.trim().split('\n').slice(1);
+            
+            if (rows.length === 0) {
+                livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; font-style:italic;">Tidak ada data untuk ditampilkan.</td></tr>`;
+                return;
+            }
+
+            livechatTableBody.innerHTML = "";
+            rows.forEach(rowText => {
+                const columns = rowText.split(',').map(col => col.trim().replace(/^"|"$/g, ''));
+                if (columns.length >= 3) {
+                    const tableRow = `
+                        <tr>
+                            <td>${columns[0]}</td>
+                            <td>${columns[1]}</td>
+                            <td>${columns[2]}</td>
+                        </tr>
+                    `;
+                    livechatTableBody.innerHTML += tableRow;
+                }
+            });
+
+        } catch (error) {
+            console.error("Error fetching Google Sheet data:", error);
+            livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color: #ff4d4d;">Gagal memuat data. Pastikan sheet sudah dipublikasikan ke web sebagai CSV.</td></tr>`;
+        }
     }
 
     function parseReportText(text) {
@@ -195,7 +239,6 @@ function initializeApp(isViewer) {
         staffTableBody.innerHTML = '';
         let staffList = await getStoredStaff();
 
-        // === LOGIKA BARU: Filter berdasarkan pencarian nama ===
         const searchTerm = staffNameSearchEl.value.toLowerCase();
         if (searchTerm) {
             staffList = staffList.filter(staff =>
@@ -276,7 +319,10 @@ function initializeApp(isViewer) {
     }
 
     // --- BAGIAN 4: EVENT LISTENERS ---
-    [navKesalahan, navBoxNama, navDataStaff, navTambah].forEach(nav => nav.addEventListener('click', (e) => { e.preventDefault(); showPage(nav.id.split('-')[1]); }));
+    [navKesalahan, navBoxNama, navDataStaff, navTambah, navLivechat].forEach(nav => nav.addEventListener('click', (e) => {
+        e.preventDefault();
+        showPage(nav.id.split('-')[1]);
+    }));
     
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -301,7 +347,6 @@ function initializeApp(isViewer) {
 
     [fromDateEl, toDateEl, employeeSearchEl].forEach(el => el.addEventListener('input', updateDashboard));
     
-    // === EVENT LISTENER BARU DITAMBAHKAN ===
     staffNameSearchEl.addEventListener('input', renderStaffTable);
     
     addStaffBtn.addEventListener('click', () => { if(isViewer) return; staffForm.reset(); document.getElementById('staff-id').value = ''; modalTitle.textContent = 'Tambah Staff Baru'; staffFormModal.style.display = 'flex'; });
