@@ -1,3 +1,4 @@
+// Import the functions you need from the SDKs you need
 import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -179,6 +180,8 @@ function initializeApp() {
     
     function calculateAge(birthDateString) { const birthDate = parseDate(birthDateString); if (!birthDate) return null; const today = new Date(); let age = today.getFullYear() - birthDate.getFullYear(); const monthDifference = today.getMonth() - birthDate.getMonth(); if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birthDate.getDate())) { age--; } return age; }
     
+    function calculateTenure(joinDateString) { const joinDate = parseDate(joinDateString); if (!joinDate) return 'N/A'; const today = new Date(); let years = today.getFullYear() - joinDate.getFullYear(); let months = today.getMonth() - joinDate.getMonth(); let days = today.getDate() - joinDate.getDate(); if (days < 0) { months--; const prevMonth = new Date(today.getFullYear(), today.getMonth(), 0); days += prevMonth.getDate(); } if (months < 0) { years--; months += 12; } return `${years} thn, ${months} bln, ${days} hr`; }
+
     async function renderStaffTable() {
         staffTableBody.innerHTML = '';
         const staffList = await getStoredStaff();
@@ -190,7 +193,26 @@ function initializeApp() {
         });
     }
 
-    function openViewModal(staff) { /* ... (Fungsi ini tetap sama) ... */ }
+    function openViewModal(staff) {
+        document.getElementById('view-modal-title').textContent = `Lihat Data Staff: ${staff.namaStaff || ''}`;
+        document.getElementById('view-nama-staff').textContent = staff.namaStaff || 'N/A';
+        document.getElementById('view-no-passport').textContent = staff.noPassport || 'N/A';
+        document.getElementById('view-jabatan').textContent = staff.jabatan || 'N/A';
+        document.getElementById('view-tempat-lahir').textContent = staff.tempatLahir || 'N/A';
+        document.getElementById('view-tanggal-lahir').textContent = staff.tanggalLahir || 'N/A';
+        const age = calculateAge(staff.tanggalLahir);
+        document.getElementById('view-usia').textContent = age ? `${age} Tahun` : 'N/A';
+        document.getElementById('view-jenis-kelamin').textContent = staff.jenisKelamin || 'N/A';
+        document.getElementById('view-kamar-mess').textContent = staff.kamarMess || 'N/A';
+        document.getElementById('view-tgl-gabung-smb').textContent = staff.tglGabungSmb || 'N/A';
+        document.getElementById('view-masa-kerja').textContent = calculateTenure(staff.tglGabungSmb);
+        document.getElementById('view-join-togelup').textContent = staff.joinTogelup || 'N/A';
+        document.getElementById('view-jam-kerja').textContent = staff.jamKerja || 'N/A';
+        document.getElementById('view-admin-idn').textContent = staff.adminIdn || 'N/A';
+        document.getElementById('view-admin-power').textContent = staff.adminPower || 'N/A';
+        document.getElementById('view-email-kerja').textContent = staff.emailKerja || 'N/A';
+        staffViewModal.style.display = 'flex';
+    }
     
     async function exportToExcel() {
         const staffList = await getStoredStaff();
@@ -205,27 +227,33 @@ function initializeApp() {
     // --- BAGIAN 4: EVENT LISTENERS ---
     [navKesalahan, navBoxNama, navDataStaff, navTambah].forEach(nav => nav.addEventListener('click', (e) => { e.preventDefault(); showPage(nav.id.split('-')[1]); }));
     
-    form.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const inputText = reportInput.value;
-        if (inputText.trim() === "") return;
-        const newError = parseReportText(inputText);
-        await saveError(newError);
-        messageArea.innerHTML = '<p style="color: #4CAF50; text-align:center;">Berhasil!</p>';
-        form.reset();
-        setTimeout(() => { messageArea.innerHTML = ""; showPage('kesalahan'); }, 1500);
-    });
+    if(form) {
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const inputText = reportInput.value;
+            if (inputText.trim() === "") return;
+            const newError = parseReportText(inputText);
+            await saveError(newError);
+            messageArea.innerHTML = '<p style="color: #4CAF50; text-align:center;">Berhasil!</p>';
+            form.reset();
+            setTimeout(() => { messageArea.innerHTML = ""; showPage('kesalahan'); }, 1500);
+        });
+    }
 
-    clearButton.addEventListener('click', async () => {
-        if (confirm('APAKAH ANDA YAKIN? Semua data KESALAHAN akan dihapus permanen.')) {
-            await deleteAllErrors();
-            updateDashboard();
-            if (pageBoxNama.style.display === "block") { renderStaffSummary(); }
-        }
-    });
+    if(clearButton) {
+        clearButton.addEventListener('click', async () => {
+            if (confirm('APAKAH ANDA YAKIN? Semua data KESALAHAN akan dihapus permanen.')) {
+                await deleteAllErrors();
+                updateDashboard();
+                if (pageBoxNama.style.display === "block") { renderStaffSummary(); }
+            }
+        });
+    }
 
     [fromDateEl, toDateEl, employeeSearchEl].forEach(el => el.addEventListener('input', updateDashboard));
-    addStaffBtn.addEventListener('click', () => { staffForm.reset(); document.getElementById('staff-id').value = ''; modalTitle.textContent = 'Tambah Staff Baru'; staffFormModal.style.display = 'flex'; });
+
+    if(addStaffBtn) addStaffBtn.addEventListener('click', () => { staffForm.reset(); document.getElementById('staff-id').value = ''; modalTitle.textContent = 'Tambah Staff Baru'; staffFormModal.style.display = 'flex'; });
+    
     closeFormModalBtn.addEventListener('click', () => { staffFormModal.style.display = 'none'; });
     window.addEventListener('click', (event) => { if (event.target == staffFormModal) { staffFormModal.style.display = 'none'; } });
     closeViewModalBtn.addEventListener('click', () => { staffViewModal.style.display = 'none'; });
@@ -233,22 +261,24 @@ function initializeApp() {
     closeErrorViewModalBtn.addEventListener('click', () => { errorViewModal.style.display = 'none'; });
     window.addEventListener('click', (event) => { if (event.target == errorViewModal) { errorViewModal.style.display = 'none'; } });
 
-    staffForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const staffId = document.getElementById('staff-id').value;
-        const staffData = {
-            namaStaff: document.getElementById('nama-staff').value, noPassport: document.getElementById('no-passport').value,
-            jabatan: document.getElementById('jabatan').value, tempatLahir: document.getElementById('tempat-lahir').value,
-            tanggalLahir: document.getElementById('tanggal-lahir').value, jenisKelamin: document.getElementById('jenis-kelamin').value,
-            kamarMess: document.getElementById('kamar-mess').value, tglGabungSmb: document.getElementById('tgl-gabung-smb').value,
-            joinTogelup: document.getElementById('join-togelup').value, jamKerja: document.getElementById('jam-kerja').value,
-            adminIdn: document.getElementById('admin-idn').value, adminPower: document.getElementById('admin-power').value,
-            emailKerja: document.getElementById('email-kerja').value,
-        };
-        await saveStaff(staffData, staffId);
-        renderStaffTable();
-        staffFormModal.style.display = 'none';
-    });
+    if(staffForm) {
+        staffForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const staffId = document.getElementById('staff-id').value;
+            const staffData = {
+                namaStaff: document.getElementById('nama-staff').value, noPassport: document.getElementById('no-passport').value,
+                jabatan: document.getElementById('jabatan').value, tempatLahir: document.getElementById('tempat-lahir').value,
+                tanggalLahir: document.getElementById('tanggal-lahir').value, jenisKelamin: document.getElementById('jenis-kelamin').value,
+                kamarMess: document.getElementById('kamar-mess').value, tglGabungSmb: document.getElementById('tgl-gabung-smb').value,
+                joinTogelup: document.getElementById('join-togelup').value, jamKerja: document.getElementById('jam-kerja').value,
+                adminIdn: document.getElementById('admin-idn').value, adminPower: document.getElementById('admin-power').value,
+                emailKerja: document.getElementById('email-kerja').value,
+            };
+            await saveStaff(staffData, staffId);
+            renderStaffTable();
+            staffFormModal.style.display = 'none';
+        });
+    }
     
     staffTableBody.addEventListener('click', async (event) => {
         const target = event.target.closest('button');
@@ -265,7 +295,22 @@ function initializeApp() {
                 renderStaffTable();
             }
         } else if (target.classList.contains('btn-edit')) {
-            // ... (Fungsi isi form untuk edit tetap sama) ...
+            document.getElementById('staff-id').value = staffToActOn.id;
+            document.getElementById('nama-staff').value = staffToActOn.namaStaff || '';
+            document.getElementById('no-passport').value = staffToActOn.noPassport || '';
+            document.getElementById('jabatan').value = staffToActOn.jabatan || '';
+            document.getElementById('tempat-lahir').value = staffToActOn.tempatLahir || '';
+            document.getElementById('tanggal-lahir').value = staffToActOn.tanggalLahir || '';
+            document.getElementById('jenis-kelamin').value = staffToActOn.jenisKelamin || 'Laki-laki';
+            document.getElementById('kamar-mess').value = staffToActOn.kamarMess || '';
+            document.getElementById('tgl-gabung-smb').value = staffToActOn.tglGabungSmb || '';
+            document.getElementById('join-togelup').value = staffToActOn.joinTogelup || '';
+            document.getElementById('jam-kerja').value = staffToActOn.jamKerja || '';
+            document.getElementById('admin-idn').value = staffToActOn.adminIdn || '';
+            document.getElementById('admin-power').value = staffToActOn.adminPower || '';
+            document.getElementById('email-kerja').value = staffToActOn.emailKerja || '';
+            modalTitle.textContent = 'Edit Data Staff';
+            staffFormModal.style.display = 'flex';
         }
     });
 
@@ -287,7 +332,7 @@ function initializeApp() {
         }
     });
 
-    exportExcelBtn.addEventListener('click', exportToExcel);
+    if(exportExcelBtn) exportExcelBtn.addEventListener('click', exportToExcel);
 
     // --- INISIALISASI HALAMAN ---
     document.getElementById('app-loader').style.display = 'none';
@@ -295,15 +340,61 @@ function initializeApp() {
     showPage('kesalahan');
 }
 
-// --- PEMERIKSAAN AUTENTIKASI ---
-onAuthStateChanged(auth, (user) => {
+// --- PEMERIKSAAN AUTENTIKASI (BAGIAN INI YANG DIUBAH TOTAL) ---
+onAuthStateChanged(auth, async (user) => {
     if (user) {
+        // Ambil token pengguna untuk mendapatkan custom claims (peran)
+        await user.getIdToken(true); // Paksa refresh token untuk mendapatkan claims terbaru
+        const idTokenResult = await user.getIdTokenResult();
+        const userRole = idTokenResult.claims.role;
+
+        // Inisialisasi aplikasi utama
         initializeApp();
+
+        // Jika peran pengguna adalah 'viewer', terapkan mode hanya-lihat
+        if (userRole === 'viewer') {
+            console.log("Mode Penglihat (Viewer) Aktif.");
+
+            // Fungsi untuk menyembunyikan elemen
+            const hide = (selector) => {
+                document.querySelectorAll(selector).forEach(el => el.style.display = 'none');
+            };
+
+            // Sembunyikan semua elemen kontrol
+            hide('#nav-tambah');
+            hide('#add-staff-btn');
+            hide('#export-excel-btn');
+            hide('#clear-data');
+            hide('.btn-edit');
+            hide('.btn-delete');
+            hide('.btn-delete-error');
+            
+            // Sembunyikan kolom "Aksi" di header tabel
+            document.querySelectorAll('th').forEach(th => {
+                if (th.textContent === 'Aksi') {
+                    th.style.display = 'none';
+                }
+            });
+            // Sembunyikan kolom "Aksi" di body tabel
+            const observer = new MutationObserver(() => {
+                document.querySelectorAll('td:last-child').forEach(td => {
+                    if (td.querySelector('.button-wrapper')) {
+                        td.style.display = 'none';
+                    }
+                });
+            });
+            observer.observe(document.getElementById('staff-table-body'), { childList: true });
+            observer.observe(document.getElementById('errors-table-body'), { childList: true });
+        }
+
+        // Event listener untuk logout tetap ada untuk semua pengguna
         document.getElementById('logout-btn').addEventListener('click', (e) => {
             e.preventDefault();
             signOut(auth);
         });
+        
     } else {
+        // Jika tidak ada user, arahkan ke halaman login
         window.location.href = 'login.html';
     }
 });
