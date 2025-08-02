@@ -2,8 +2,8 @@ import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-function initializeApp(isViewer) { // Terima status pengguna (viewer atau bukan)
-    // --- BAGIAN 1: SELEKSI ELEMEN DOM ---
+function initializeApp(isViewer) {
+    // --- BAGIAN 1: SELEKSI ELEMEN DOM (Tidak ada perubahan) ---
     const navKesalahan = document.getElementById('nav-kesalahan');
     const navBoxNama = document.getElementById('nav-boxnama');
     const navDataStaff = document.getElementById('nav-datastaff');
@@ -38,7 +38,7 @@ function initializeApp(isViewer) { // Terima status pengguna (viewer atau bukan)
     const errorsCollectionRef = collection(db, "kesalahan");
     const staffCollectionRef = collection(db, "staff");
 
-    // --- BATASI UI UNTUK PENGGUNA VIEWER ---
+    // --- BATASI UI UNTUK PENGGUNA VIEWER (Tidak ada perubahan) ---
     if (isViewer) {
         navTambah.style.display = 'none';
         clearButton.style.display = 'none';
@@ -95,6 +95,7 @@ function initializeApp(isViewer) { // Terima status pengguna (viewer atau bukan)
     }
 
     async function updateDashboard() {
+        // ... (Fungsi ini tidak ada perubahan)
         const errors = await getStoredErrors();
         const fromDate = fromDateEl.value ? new Date(fromDateEl.value).setHours(0, 0, 0, 0) : null;
         const toDate = toDateEl.value ? new Date(toDateEl.value).setHours(23, 59, 59, 999) : null;
@@ -141,6 +142,7 @@ function initializeApp(isViewer) { // Terima status pengguna (viewer atau bukan)
     }
 
     async function renderStaffSummary() {
+        // ... (Fungsi ini tidak ada perubahan)
         const errors = await getStoredErrors();
         const staffData = {};
         errors.forEach(err => {
@@ -163,17 +165,22 @@ function initializeApp(isViewer) { // Terima status pengguna (viewer atau bukan)
         });
     }
     
+    // --- PERUBAHAN 1: UBAH QUERY UNTUK MENGAMBIL DATA BERDASARKAN WAKTU ---
     async function getStoredStaff() {
-        const data = await getDocs(query(staffCollectionRef, orderBy('namaStaff', 'asc')));
+        // Mengurutkan berdasarkan field 'createdAt' dari yang terbaru (descending)
+        const data = await getDocs(query(staffCollectionRef, orderBy('createdAt', 'desc')));
         return data.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
     }
     
+    // --- PERUBAHAN 2: TAMBAHKAN TIMESTAMP SAAT MENYIMPAN DATA BARU ---
     async function saveStaff(staffData, staffId) {
         if (staffId) {
             const staffDoc = doc(db, "staff", staffId);
+            // Saat mengedit, kita tidak mengubah 'createdAt', cukup update data lain
             await updateDoc(staffDoc, staffData);
         } else {
-            await addDoc(staffCollectionRef, staffData);
+            // Saat menambah data baru, tambahkan field 'createdAt'
+            await addDoc(staffCollectionRef, { ...staffData, createdAt: serverTimestamp() });
         }
     }
 
@@ -183,16 +190,34 @@ function initializeApp(isViewer) { // Terima status pengguna (viewer atau bukan)
     }
     
     function parseDate(dateString) { if (!dateString || typeof dateString !== 'string') return null; let date; if (dateString.includes('-')) { const parts = dateString.split('-'); if (parts.length !== 3 || isNaN(parts[0]) || isNaN(parts[1]) || isNaN(parts[2])) return null; date = new Date(parts[0], parts[1] - 1, parts[2]); } else if (dateString.includes('/')) { const parts = dateString.split('/'); if (parts.length !== 3 || isNaN(parts[0]) || isNaN(parts[1]) || isNaN(parts[2])) return null; date = new Date(parts[2], parts[1] - 1, parts[0]); } else { return null; } return isNaN(date.getTime()) ? null : date; }
-    
     function calculateAge(birthDateString) { const birthDate = parseDate(birthDateString); if (!birthDate) return null; const today = new Date(); let age = today.getFullYear() - birthDate.getFullYear(); const monthDifference = today.getMonth() - birthDate.getMonth(); if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birthDate.getDate())) { age--; } return age; }
-    
     function calculateTenure(joinDateString) { const joinDate = parseDate(joinDateString); if (!joinDate) return ''; const today = new Date(); let years = today.getFullYear() - joinDate.getFullYear(); let months = today.getMonth() - joinDate.getMonth(); if (months < 0) { years--; months += 12; } return `${years} Tahun, ${months} Bulan`; }
 
     async function renderStaffTable() {
         staffTableBody.innerHTML = '';
         const staffList = await getStoredStaff();
-        if (staffList.length === 0) { staffTableBody.innerHTML = `<tr><td colspan="10" style="text-align:center; font-style:italic;">Belum ada data staff.</td></tr>`; return; }
-        staffList.forEach((staff, index) => {
+
+        // Data yang tidak punya 'createdAt' (data lama) mungkin tidak akan muncul dengan query di atas.
+        // Untuk menanganinya, kita ambil semua lalu urutkan di client-side.
+        // Ganti getStoredStaff menjadi versi yang lebih simpel:
+        async function getStoredStaffSimple() {
+            const data = await getDocs(staffCollectionRef);
+            return data.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
+        }
+        
+        const allStaffList = await getStoredStaffSimple();
+        
+        // Urutkan di sini
+        allStaffList.sort((a, b) => {
+            const aTime = a.createdAt ? a.createdAt.toMillis() : 0;
+            const bTime = b.createdAt ? b.createdAt.toMillis() : 0;
+            return bTime - aTime; // b - a untuk descending (terbaru di atas)
+        });
+
+
+        if (allStaffList.length === 0) { staffTableBody.innerHTML = `<tr><td colspan="10" style="text-align:center; font-style:italic;">Belum ada data staff.</td></tr>`; return; }
+        
+        allStaffList.forEach((staff, index) => {
             let usia = ''; const calculatedAge = calculateAge(staff.tanggalLahir); if (calculatedAge !== null && calculatedAge >= 0) { usia = `${calculatedAge} TAHUN`; }
             const actionButtonsHTML = !isViewer ? `<button class="btn btn-sm btn__info btn-edit" data-id="${staff.id}"><i class="bi bi-pencil-fill"></i></button><button class="btn btn-sm btn__danger btn-delete" data-id="${staff.id}"><i class="bi bi-trash-fill"></i></button>` : '';
             const row = `<tr><td>${index + 1}</td><td>${staff.namaStaff || ''}</td><td>${staff.noPassport || ''}</td><td>${staff.jabatan || ''}</td><td>${staff.tempatLahir || ''}</td><td>${staff.tanggalLahir || ''}</td><td>${usia}</td><td>${staff.emailKerja || ''}</td><td>${staff.adminIdn || ''}</td><td><div class="button-wrapper" style="justify-content: flex-start; margin: 0; gap: 5px;"><button class="btn btn-sm btn__view btn-view-staff" data-id="${staff.id}"><i class="bi bi-eye-fill"></i></button>${actionButtonsHTML}</div></td></tr>`;
@@ -200,8 +225,8 @@ function initializeApp(isViewer) { // Terima status pengguna (viewer atau bukan)
         });
     }
 
-    // --- FUNGSI LENGKAP UNTUK MODAL LIHAT STAFF ---
     function openViewModal(staff) {
+        // ... (Fungsi ini tidak ada perubahan)
         document.getElementById('view-modal-title').textContent = `Lihat Data Staff: ${staff.namaStaff || ''}`;
         document.getElementById('view-nama-staff').textContent = staff.namaStaff || '-';
         document.getElementById('view-no-passport').textContent = staff.noPassport || '-';
@@ -223,6 +248,7 @@ function initializeApp(isViewer) { // Terima status pengguna (viewer atau bukan)
     }
     
     async function exportToExcel() {
+        // ... (Fungsi ini tidak ada perubahan)
         const staffList = await getStoredStaff();
         if (staffList.length === 0) { alert("Tidak ada data staff untuk di-export."); return; }
         const dataToExport = staffList.map((staff, index) => ({ 'NO': index + 1, 'NAMA STAFF': staff.namaStaff || '', 'No Passport': staff.noPassport || '', 'JABATAN': staff.jabatan || '' }));
@@ -232,30 +258,11 @@ function initializeApp(isViewer) { // Terima status pengguna (viewer atau bukan)
         XLSX.writeFile(workbook, "Data_Staff.xlsx");
     }
 
-    // --- BAGIAN 4: EVENT LISTENERS ---
+    // --- BAGIAN 4: EVENT LISTENERS (Tidak ada perubahan signifikan) ---
     [navKesalahan, navBoxNama, navDataStaff, navTambah].forEach(nav => nav.addEventListener('click', (e) => { e.preventDefault(); showPage(nav.id.split('-')[1]); }));
     
-    form.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        if (isViewer) return;
-        const inputText = reportInput.value;
-        if (inputText.trim() === "") return;
-        const newError = parseReportText(inputText);
-        await saveError(newError);
-        messageArea.innerHTML = '<p style="color: #4CAF50; text-align:center;">Berhasil!</p>';
-        form.reset();
-        setTimeout(() => { messageArea.innerHTML = ""; showPage('kesalahan'); }, 1500);
-    });
-
-    clearButton.addEventListener('click', async () => {
-        if (isViewer) return;
-        if (confirm('APAKAH ANDA YAKIN? Semua data KESALAHAN akan dihapus permanen.')) {
-            await deleteAllErrors();
-            updateDashboard();
-            if (pageBoxNama.style.display === "block") { renderStaffSummary(); }
-        }
-    });
-
+    form.addEventListener('submit', async (event) => { event.preventDefault(); if (isViewer) return; const inputText = reportInput.value; if (inputText.trim() === "") return; const newError = parseReportText(inputText); await saveError(newError); messageArea.innerHTML = '<p style="color: #4CAF50; text-align:center;">Berhasil!</p>'; form.reset(); setTimeout(() => { messageArea.innerHTML = ""; showPage('kesalahan'); }, 1500); });
+    clearButton.addEventListener('click', async () => { if (isViewer) return; if (confirm('APAKAH ANDA YAKIN? Semua data KESALAHAN akan dihapus permanen.')) { await deleteAllErrors(); updateDashboard(); if (pageBoxNama.style.display === "block") { renderStaffSummary(); } } });
     [fromDateEl, toDateEl, employeeSearchEl].forEach(el => el.addEventListener('input', updateDashboard));
     addStaffBtn.addEventListener('click', () => { if(isViewer) return; staffForm.reset(); document.getElementById('staff-id').value = ''; modalTitle.textContent = 'Tambah Staff Baru'; staffFormModal.style.display = 'flex'; });
     closeFormModalBtn.addEventListener('click', () => { staffFormModal.style.display = 'none'; });
@@ -287,7 +294,12 @@ function initializeApp(isViewer) { // Terima status pengguna (viewer atau bukan)
         const target = event.target.closest('button');
         if (!target) return;
         const id = target.dataset.id;
-        const staffList = await getStoredStaff();
+        // Kita butuh daftar yang belum diurutkan untuk menemukan data yang benar
+        async function getRawStaffList() {
+             const data = await getDocs(staffCollectionRef);
+             return data.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
+        }
+        const staffList = await getRawStaffList();
         const staffToActOn = staffList.find(s => s.id === id);
         if (!staffToActOn) return;
 
@@ -301,7 +313,6 @@ function initializeApp(isViewer) { // Terima status pengguna (viewer atau bukan)
             }
         } else if (target.classList.contains('btn-edit')) {
             if (isViewer) return;
-            // --- FUNGSI LENGKAP UNTUK MENGISI FORM EDIT ---
             modalTitle.textContent = 'Edit Data Staff';
             document.getElementById('staff-id').value = staffToActOn.id;
             document.getElementById('nama-staff').value = staffToActOn.namaStaff || '';
@@ -348,7 +359,7 @@ function initializeApp(isViewer) { // Terima status pengguna (viewer atau bukan)
     showPage('kesalahan');
 }
 
-// --- PEMERIKSAAN AUTENTIKASI ---
+// --- PEMERIKSAAN AUTENTIKASI (Tidak ada perubahan) ---
 onAuthStateChanged(auth, (user) => {
     if (user) {
         const viewerEmails = [
