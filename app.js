@@ -69,28 +69,9 @@ function initializeApp(isViewer) {
         navToActivate.classList.add('active');
     }
 
-    // --- FUNGSI PARSING CSV YANG LEBIH ANDAL ---
-    function parseCsvRow(rowText) {
-        const result = [];
-        let current = '';
-        let inQuotes = false;
-        for (let i = 0; i < rowText.length; i++) {
-            const char = rowText[i];
-            if (char === '"') {
-                inQuotes = !inQuotes;
-            } else if (char === ',' && !inQuotes) {
-                result.push(current.trim());
-                current = '';
-            } else {
-                current += char;
-            }
-        }
-        result.push(current.trim());
-        return result.map(val => val.replace(/^"|"$/g, '')); // Hapus sisa tanda kutip
-    }
-
-    // --- FUNGSI GOOGLE SHEET DENGAN PARSING BARU & LOGGING ---
+    // === FUNGSI GOOGLE SHEET DENGAN LOGIKA BARU YANG LEBIH ANDAL ===
     async function fetchAndRenderLivechatData() {
+        // Menggunakan URL baru yang Anda berikan, dengan trik anti-cache
         const googleSheetUrl = `https://docs.google.com/spreadsheets/d/e/2PACX-1vTx_JjCSDeqgGnDqT8oWbT_zcVOX2W8UMx1oG5aCsvKHzWxhXNdMGOWbK-v6jzK0twmiOM4LGpZuQzJ/pub?gid=593722510&single=true&output=csv&_=${new Date().getTime()}`;
 
         livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center;">Mengambil data...</td></tr>`;
@@ -101,42 +82,65 @@ function initializeApp(isViewer) {
                 throw new Error(`Gagal mengambil data. Status: ${response.status}.`);
             }
             const csvText = await response.text();
-            console.log("Data CSV Mentah Diterima:", csvText); // LOGGING UNTUK DEBUG
+            
+            const allRows = csvText.trim().split('\n');
 
-            const dataRows = csvText.trim().split('\n').slice(3);
+            // 1. Cari baris header secara dinamis
+            let headerIndex = -1;
+            for (let i = 0; i < allRows.length; i++) {
+                const row = allRows[i].toUpperCase();
+                // Cari baris yang mengandung semua kata kunci header
+                if (row.includes('TANGGAL') && row.includes('NAMA CS') && row.includes('JENIS KESALAHAN')) {
+                    headerIndex = i;
+                    break;
+                }
+            }
 
-            if (dataRows.length === 0 || (dataRows.length === 1 && dataRows[0].trim() === '')) {
-                livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; font-style:italic;">Tidak ada data untuk ditampilkan.</td></tr>`;
+            if (headerIndex === -1) {
+                livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; font-style:italic;">Header tabel tidak ditemukan di Google Sheet.</td></tr>`;
                 return;
             }
 
-            livechatTableBody.innerHTML = "";
-            
-            dataRows.forEach(rowText => {
-                if (rowText.trim() === '') return;
-                
-                // Gunakan fungsi parsing yang baru
-                const columns = parseCsvRow(rowText);
-                
-                if (columns.length >= 3 && (columns[0] || columns[1] || columns[2])) {
-                    const tableRow = `
-                        <tr>
-                            <td>${columns[0] || ''}</td>
-                            <td>${columns[1] || ''}</td>
-                            <td>${columns[2] || ''}</td>
-                        </tr>
-                    `;
-                    livechatTableBody.innerHTML += tableRow;
+            livechatTableBody.innerHTML = ""; // Kosongkan tabel
+
+            // 2. Proses data mulai dari baris SETELAH header
+            for (let i = headerIndex + 1; i < allRows.length; i++) {
+                const rowText = allRows[i];
+
+                // 3. Berhenti jika menemukan baris kosong atau baris total, ini menandakan akhir data
+                if (rowText.trim() === '' || rowText.toUpperCase().includes('TOTAL')) {
+                    break;
                 }
-            });
+                
+                // 4. Pisahkan kolom dengan cara yang lebih aman
+                const parts = rowText.split(',');
+                if (parts.length >= 3) {
+                    const tanggal = (parts[0] || '').trim().replace(/^"|"$/g, '');
+                    const namaCS = (parts[1] || '').trim().replace(/^"|"$/g, '');
+                    // Gabungkan sisa array untuk menangani koma di dalam "Jenis Kesalahan"
+                    const jenisKesalahan = parts.slice(2).join(',').trim().replace(/^"|"$/g, '');
+
+                    // Hanya tampilkan baris jika ada isinya
+                    if (tanggal || namaCS || jenisKesalahan) {
+                        const tableRow = `
+                            <tr>
+                                <td>${tanggal}</td>
+                                <td>${namaCS}</td>
+                                <td style="white-space: normal;">${jenisKesalahan}</td>
+                            </tr>
+                        `;
+                        livechatTableBody.innerHTML += tableRow;
+                    }
+                }
+            }
 
             if(livechatTableBody.innerHTML === "") {
-                 livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; font-style:italic;">Tidak ada data valid untuk ditampilkan.</td></tr>`;
+                 livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; font-style:italic;">Tidak ada data valid ditemukan setelah header.</td></tr>`;
             }
 
         } catch (error) {
-            console.error("Gagal mengambil data dari Google Sheet:", error);
-            livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color: #ff4d4d; white-space: normal;">Terjadi kesalahan saat memuat data. Silakan coba muat ulang halaman.</td></tr>`;
+            console.error("Gagal memproses data Google Sheet:", error);
+            livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color: #ff4d4d;">Terjadi kesalahan. Periksa console log untuk detail.</td></tr>`;
         }
     }
 
@@ -487,4 +491,3 @@ onAuthStateChanged(auth, (user) => {
         window.location.href = 'login.html';
     }
 });
-
