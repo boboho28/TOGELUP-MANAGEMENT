@@ -69,7 +69,27 @@ function initializeApp(isViewer) {
         navToActivate.classList.add('active');
     }
 
-    // === PERBAIKAN UTAMA DI FUNGSI INI ===
+    // --- FUNGSI PARSING CSV YANG LEBIH ANDAL ---
+    function parseCsvRow(rowText) {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+        for (let i = 0; i < rowText.length; i++) {
+            const char = rowText[i];
+            if (char === '"') {
+                inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+                result.push(current.trim());
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+        result.push(current.trim());
+        return result.map(val => val.replace(/^"|"$/g, '')); // Hapus sisa tanda kutip
+    }
+
+    // --- FUNGSI GOOGLE SHEET DENGAN PARSING BARU & LOGGING ---
     async function fetchAndRenderLivechatData() {
         const googleSheetUrl = `https://docs.google.com/spreadsheets/d/e/2PACX-1vTx_JjCSDeqgGnDqT8oWbT_zcVOX2W8UMx1oG5aCsvKHzWxhXNdMGOWbK-v6jzK0twmiOM4LGpZuQzJ/pub?output=csv&_=${new Date().getTime()}`;
 
@@ -81,9 +101,8 @@ function initializeApp(isViewer) {
                 throw new Error(`Gagal mengambil data. Status: ${response.status}.`);
             }
             const csvText = await response.text();
-            
-            // Memecah CSV menjadi baris, lalu menghapus 3 baris header pertama
-            // untuk memulai dari data di baris ke-4.
+            console.log("Data CSV Mentah Diterima:", csvText); // LOGGING UNTUK DEBUG
+
             const dataRows = csvText.trim().split('\n').slice(3);
 
             if (dataRows.length === 0 || (dataRows.length === 1 && dataRows[0].trim() === '')) {
@@ -91,15 +110,14 @@ function initializeApp(isViewer) {
                 return;
             }
 
-            livechatTableBody.innerHTML = ""; // Kosongkan tabel sebelum mengisi
+            livechatTableBody.innerHTML = "";
             
             dataRows.forEach(rowText => {
-                // Jangan proses baris yang kosong
                 if (rowText.trim() === '') return;
                 
-                const columns = rowText.split(',').map(col => col.trim().replace(/^"|"$/g, ''));
+                // Gunakan fungsi parsing yang baru
+                const columns = parseCsvRow(rowText);
                 
-                // Pastikan kolom A, B, dan C tidak kosong
                 if (columns.length >= 3 && (columns[0] || columns[1] || columns[2])) {
                     const tableRow = `
                         <tr>
@@ -112,7 +130,6 @@ function initializeApp(isViewer) {
                 }
             });
 
-            // Jika setelah loop tabel masih kosong, berarti tidak ada data valid
             if(livechatTableBody.innerHTML === "") {
                  livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; font-style:italic;">Tidak ada data valid untuk ditampilkan.</td></tr>`;
             }
