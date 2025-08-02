@@ -340,11 +340,15 @@ function initializeApp() {
     showPage('kesalahan');
 }
 
-// --- PEMERIKSAAN AUTENTIKASI (BAGIAN INI YANG DIUBAH TOTAL) ---
+// --- PEMERIKSAAN AUTENTIKASI (VERSI FINAL DENGAN PERBAIKAN) ---
 onAuthStateChanged(auth, async (user) => {
     if (user) {
-        // Ambil token pengguna untuk mendapatkan custom claims (peran)
-        await user.getIdToken(true); // Paksa refresh token untuk mendapatkan claims terbaru
+        // ===================================================================
+        // INI ADALAH BARIS KUNCI YANG DIPERLUKAN
+        // Memaksa refresh token untuk mendapatkan custom claims terbaru dari server.
+        await user.getIdToken(true); 
+        // ===================================================================
+        
         const idTokenResult = await user.getIdTokenResult();
         const userRole = idTokenResult.claims.role;
 
@@ -353,9 +357,8 @@ onAuthStateChanged(auth, async (user) => {
 
         // Jika peran pengguna adalah 'viewer', terapkan mode hanya-lihat
         if (userRole === 'viewer') {
-            console.log("Mode Penglihat (Viewer) Aktif.");
+            console.log("Mode Penglihat (Viewer) Aktif: Menyembunyikan elemen kontrol.");
 
-            // Fungsi untuk menyembunyikan elemen
             const hide = (selector) => {
                 document.querySelectorAll(selector).forEach(el => el.style.display = 'none');
             };
@@ -365,26 +368,25 @@ onAuthStateChanged(auth, async (user) => {
             hide('#add-staff-btn');
             hide('#export-excel-btn');
             hide('#clear-data');
-            hide('.btn-edit');
-            hide('.btn-delete');
-            hide('.btn-delete-error');
             
             // Sembunyikan kolom "Aksi" di header tabel
             document.querySelectorAll('th').forEach(th => {
-                if (th.textContent === 'Aksi') {
+                if (th.textContent.toLowerCase() === 'aksi') {
                     th.style.display = 'none';
                 }
             });
-            // Sembunyikan kolom "Aksi" di body tabel
+            
+            // Sembunyikan kolom "Aksi" di body tabel secara dinamis
             const observer = new MutationObserver(() => {
-                document.querySelectorAll('td:last-child').forEach(td => {
-                    if (td.querySelector('.button-wrapper')) {
-                        td.style.display = 'none';
-                    }
+                document.querySelectorAll('td:last-child .button-wrapper').forEach(wrapper => {
+                    wrapper.parentElement.style.display = 'none';
                 });
             });
-            observer.observe(document.getElementById('staff-table-body'), { childList: true });
-            observer.observe(document.getElementById('errors-table-body'), { childList: true });
+            
+            const staffTableBody = document.getElementById('staff-table-body');
+            const errorsTableBody = document.getElementById('errors-table-body');
+            if (staffTableBody) observer.observe(staffTableBody, { childList: true, subtree: true });
+            if (errorsTableBody) observer.observe(errorsTableBody, { childList: true, subtree: true });
         }
 
         // Event listener untuk logout tetap ada untuk semua pengguna
