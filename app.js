@@ -37,6 +37,12 @@ function initializeApp(isViewer) {
     const closeErrorViewModalBtn = document.querySelector('#error-view-modal .modal-close');
     const staffNameSearchEl = document.getElementById('staff-name-search');
     const livechatTableBody = document.getElementById('livechat-table-body');
+    const showTotalErrorsBtn = document.getElementById('show-total-errors-btn');
+    const totalErrorsModal = document.getElementById('total-errors-modal');
+    const closeTotalErrorsModalBtn = document.querySelector('#total-errors-modal .modal-close');
+    const totalErrorsTableBody = document.getElementById('total-errors-table-body');
+
+    let staffErrorTotals = [];
 
     // --- KONEKSI KE FIREBASE COLLECTIONS ---
     const errorsCollectionRef = collection(db, "kesalahan");
@@ -69,81 +75,101 @@ function initializeApp(isViewer) {
         navToActivate.classList.add('active');
     }
 
-    // === FUNGSI GOOGLE SHEET DENGAN LOGIKA BARU YANG LEBIH ANDAL ===
     async function fetchAndRenderLivechatData() {
-        // Menggunakan URL baru yang Anda berikan, dengan trik anti-cache
         const googleSheetUrl = `https://docs.google.com/spreadsheets/d/e/2PACX-1vTx_JjCSDeqgGnDqT8oWbT_zcVOX2W8UMx1oG5aCsvKHzWxhXNdMGOWbK-v6jzK0twmiOM4LGpZuQzJ/pub?gid=593722510&single=true&output=csv&_=${new Date().getTime()}`;
 
         livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center;">Mengambil data...</td></tr>`;
 
         try {
             const response = await fetch(googleSheetUrl);
-            if (!response.ok) {
-                throw new Error(`Gagal mengambil data. Status: ${response.status}.`);
-            }
-            const csvText = await response.text();
+            if (!response.ok) throw new Error(`Gagal mengambil data. Status: ${response.status}.`);
             
+            const csvText = await response.text();
             const allRows = csvText.trim().split('\n');
 
-            // 1. Cari baris header secara dinamis
+            // Bagian 1: Proses Tabel Log Kesalahan (Kolom A, B, C)
             let headerIndex = -1;
             for (let i = 0; i < allRows.length; i++) {
                 const row = allRows[i].toUpperCase();
-                // Cari baris yang mengandung semua kata kunci header
                 if (row.includes('TANGGAL') && row.includes('NAMA CS') && row.includes('JENIS KESALAHAN')) {
                     headerIndex = i;
                     break;
                 }
             }
 
-            if (headerIndex === -1) {
-                livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; font-style:italic;">Header tabel tidak ditemukan di Google Sheet.</td></tr>`;
-                return;
+            if (headerIndex !== -1) {
+                livechatTableBody.innerHTML = "";
+                for (let i = headerIndex + 1; i < allRows.length; i++) {
+                    const rowText = allRows[i];
+                    if (rowText.trim() === '' || rowText.toUpperCase().includes('TOTAL')) break;
+                    
+                    const parts = rowText.split(',');
+                    if (parts.length >= 3) {
+                        const tanggal = (parts[0] || '').trim().replace(/^"|"$/g, '');
+                        const namaCS = (parts[1] || '').trim().replace(/^"|"$/g, '');
+                        const jenisKesalahan = parts.slice(2).join(',').trim().replace(/^"|"$/g, '');
+
+                        if (tanggal || namaCS || jenisKesalahan) {
+                            livechatTableBody.innerHTML += `<tr><td>${tanggal}</td><td>${namaCS}</td><td style="white-space: normal;">${jenisKesalahan}</td></tr>`;
+                        }
+                    }
+                }
+            } else {
+                livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; font-style:italic;">Header log kesalahan tidak ditemukan.</td></tr>`;
             }
 
-            livechatTableBody.innerHTML = ""; // Kosongkan tabel
-
-            // 2. Proses data mulai dari baris SETELAH header
-            for (let i = headerIndex + 1; i < allRows.length; i++) {
-                const rowText = allRows[i];
-
-                // 3. Berhenti jika menemukan baris kosong atau baris total, ini menandakan akhir data
-                if (rowText.trim() === '' || rowText.toUpperCase().includes('TOTAL')) {
+            // Bagian 2: Proses Tabel Total Kesalahan (Kolom H, I)
+            staffErrorTotals = [];
+            let totalsHeaderIndex = -1;
+            for (let i = 0; i < allRows.length; i++) {
+                const row = allRows[i].toUpperCase();
+                if (row.includes('NAMA STAFF') && row.includes('TOTAL KESALAHAN')) {
+                    totalsHeaderIndex = i;
                     break;
                 }
-                
-                // 4. Pisahkan kolom dengan cara yang lebih aman
-                const parts = rowText.split(',');
-                if (parts.length >= 3) {
-                    const tanggal = (parts[0] || '').trim().replace(/^"|"$/g, '');
-                    const namaCS = (parts[1] || '').trim().replace(/^"|"$/g, '');
-                    // Gabungkan sisa array untuk menangani koma di dalam "Jenis Kesalahan"
-                    const jenisKesalahan = parts.slice(2).join(',').trim().replace(/^"|"$/g, '');
+            }
 
-                    // Hanya tampilkan baris jika ada isinya
-                    if (tanggal || namaCS || jenisKesalahan) {
-                        const tableRow = `
-                            <tr>
-                                <td>${tanggal}</td>
-                                <td>${namaCS}</td>
-                                <td style="white-space: normal;">${jenisKesalahan}</td>
-                            </tr>
-                        `;
-                        livechatTableBody.innerHTML += tableRow;
+            if (totalsHeaderIndex !== -1) {
+                const headerColumns = allRows[totalsHeaderIndex].split(',');
+                const nameIndex = headerColumns.findIndex(h => h.toUpperCase().includes('NAMA STAFF'));
+                const totalIndex = headerColumns.findIndex(h => h.toUpperCase().includes('TOTAL KESALAHAN'));
+
+                if (nameIndex !== -1 && totalIndex !== -1) {
+                    for (let i = totalsHeaderIndex + 1; i < allRows.length; i++) {
+                        const rowText = allRows[i];
+                        if (rowText.trim() === '' || rowText.toUpperCase().includes('TOTAL')) break;
+
+                        const columns = rowText.split(',');
+                        if (columns.length > Math.max(nameIndex, totalIndex)) {
+                            const staffName = (columns[nameIndex] || '').trim().replace(/^"|"$/g, '');
+                            const errorCount = (columns[totalIndex] || '').trim().replace(/^"|"$/g, '');
+
+                            if (staffName && errorCount) {
+                                staffErrorTotals.push({ name: staffName, count: errorCount });
+                            }
+                        }
                     }
                 }
             }
 
-            if(livechatTableBody.innerHTML === "") {
-                 livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; font-style:italic;">Tidak ada data valid ditemukan setelah header.</td></tr>`;
-            }
-
         } catch (error) {
             console.error("Gagal memproses data Google Sheet:", error);
-            livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color: #ff4d4d;">Terjadi kesalahan. Periksa console log untuk detail.</td></tr>`;
+            livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color: #ff4d4d;">Terjadi kesalahan. Periksa console log.</td></tr>`;
         }
     }
 
+    function openTotalErrorsModal() {
+        if (staffErrorTotals.length === 0) {
+            totalErrorsTableBody.innerHTML = `<tr><td colspan="2" style="text-align:center; font-style:italic;">Data total kesalahan tidak ditemukan.</td></tr>`;
+        } else {
+            totalErrorsTableBody.innerHTML = "";
+            staffErrorTotals.forEach(staff => {
+                const row = `<tr><td>${staff.name}</td><td>${staff.count}</td></tr>`;
+                totalErrorsTableBody.innerHTML += row;
+            });
+        }
+        totalErrorsModal.style.display = 'flex';
+    }
 
     function parseReportText(text) {
         const findValue = key => (new RegExp(`^${key}\\s*:\\s*(.*)$`, "im")).exec(text);
@@ -384,12 +410,20 @@ function initializeApp(isViewer) {
     staffNameSearchEl.addEventListener('input', renderStaffTable);
     
     addStaffBtn.addEventListener('click', () => { if(isViewer) return; staffForm.reset(); document.getElementById('staff-id').value = ''; modalTitle.textContent = 'Tambah Staff Baru'; staffFormModal.style.display = 'flex'; });
+    
     closeFormModalBtn.addEventListener('click', () => { staffFormModal.style.display = 'none'; });
-    window.addEventListener('click', (event) => { if (event.target == staffFormModal) { staffFormModal.style.display = 'none'; } });
     closeViewModalBtn.addEventListener('click', () => { staffViewModal.style.display = 'none'; });
-    window.addEventListener('click', (event) => { if (event.target == staffViewModal) { staffViewModal.style.display = 'none'; } });
     closeErrorViewModalBtn.addEventListener('click', () => { errorViewModal.style.display = 'none'; });
-    window.addEventListener('click', (event) => { if (event.target == errorViewModal) { errorViewModal.style.display = 'none'; } });
+    closeTotalErrorsModalBtn.addEventListener('click', () => { totalErrorsModal.style.display = 'none'; });
+    
+    window.addEventListener('click', (event) => {
+        if (event.target == staffFormModal) { staffFormModal.style.display = 'none'; }
+        if (event.target == staffViewModal) { staffViewModal.style.display = 'none'; }
+        if (event.target == errorViewModal) { errorViewModal.style.display = 'none'; }
+        if (event.target == totalErrorsModal) { totalErrorsModal.style.display = 'none'; }
+    });
+
+    showTotalErrorsBtn.addEventListener('click', openTotalErrorsModal);
 
     staffForm.addEventListener('submit', async (event) => {
         event.preventDefault();
