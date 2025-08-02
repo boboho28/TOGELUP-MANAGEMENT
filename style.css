@@ -107,16 +107,28 @@ tbody tr:hover { background: hsla(144deg 50% 50% / 20%); }
     margin-bottom: 20px;
     flex-wrap: wrap;
 }
-
 .staff-actions-container .btn {
     height: 40px;
     width: auto;
     padding: 0 25px;
     font-size: 16px;
 }
-
 .staff-search-wrapper {
     margin-left: auto;
     flex-grow: 1;
     max-width: 350px;
+}
+
+/* GAYA UNTUK TOMBOL DI HEADER KARTU */
+.card-header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.btn-header {
+    height: 35px;
+    width: auto;
+    padding: 0 20px;
+    font-size: 14px;
+    font-weight: bold;
 }
