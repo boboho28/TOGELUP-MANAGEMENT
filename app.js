@@ -40,13 +40,9 @@ function initializeApp(isViewer) { // Terima status pengguna (viewer atau bukan)
 
     // --- BATASI UI UNTUK PENGGUNA VIEWER ---
     if (isViewer) {
-        // 1. Sembunyikan navigasi "TAMBAH"
         navTambah.style.display = 'none';
-        // 2. Sembunyikan tombol "Hapus Data Kesalahan"
         clearButton.style.display = 'none';
-        // 3. Sembunyikan tombol "Tambah Staff Baru"
         addStaffBtn.style.display = 'none';
-        // 4. Sembunyikan tombol "Proses & Simpan" di halaman Tambah
         const prosesSimpanBtn = document.querySelector('#auto-parser-form button[type="submit"]');
         if (prosesSimpanBtn) {
             prosesSimpanBtn.style.display = 'none';
@@ -124,9 +120,7 @@ function initializeApp(isViewer) { // Terima status pengguna (viewer atau bukan)
             return;
         }
         filteredErrors.forEach(err => {
-            // Logika untuk hanya menampilkan tombol hapus jika bukan viewer
             const deleteButtonHTML = !isViewer ? `<button class="btn btn-sm btn__danger btn-delete-error" data-id="${err.id}"><i class="bi bi-trash-fill"></i></button>` : '';
-            
             const row = `
                 <tr>
                     <td>${err.id.substring(0, 6)}...</td>
@@ -134,12 +128,7 @@ function initializeApp(isViewer) { // Terima status pengguna (viewer atau bukan)
                     <td>${err.staff}</td>
                     <td>Staff</td>
                     <td>${err.perihal}</td>
-                    <td>
-                        <div class="button-wrapper" style="justify-content: center; margin: 0; gap: 10px;">
-                            <button class="btn btn-sm btn__view btn-view-error" data-id="${err.id}"><i class="bi bi-eye-fill"></i></button>
-                            ${deleteButtonHTML}
-                        </div>
-                    </td>
+                    <td><div class="button-wrapper" style="justify-content: center; margin: 0; gap: 10px;"><button class="btn btn-sm btn__view btn-view-error" data-id="${err.id}"><i class="bi bi-eye-fill"></i></button>${deleteButtonHTML}</div></td>
                 </tr>`;
             tableBody.innerHTML += row;
         });
@@ -175,7 +164,7 @@ function initializeApp(isViewer) { // Terima status pengguna (viewer atau bukan)
     }
     
     async function getStoredStaff() {
-        const data = await getDocs(staffCollectionRef);
+        const data = await getDocs(query(staffCollectionRef, orderBy('namaStaff', 'asc')));
         return data.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
     }
     
@@ -197,27 +186,42 @@ function initializeApp(isViewer) { // Terima status pengguna (viewer atau bukan)
     
     function calculateAge(birthDateString) { const birthDate = parseDate(birthDateString); if (!birthDate) return null; const today = new Date(); let age = today.getFullYear() - birthDate.getFullYear(); const monthDifference = today.getMonth() - birthDate.getMonth(); if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birthDate.getDate())) { age--; } return age; }
     
+    function calculateTenure(joinDateString) { const joinDate = parseDate(joinDateString); if (!joinDate) return ''; const today = new Date(); let years = today.getFullYear() - joinDate.getFullYear(); let months = today.getMonth() - joinDate.getMonth(); if (months < 0) { years--; months += 12; } return `${years} Tahun, ${months} Bulan`; }
+
     async function renderStaffTable() {
         staffTableBody.innerHTML = '';
         const staffList = await getStoredStaff();
         if (staffList.length === 0) { staffTableBody.innerHTML = `<tr><td colspan="10" style="text-align:center; font-style:italic;">Belum ada data staff.</td></tr>`; return; }
         staffList.forEach((staff, index) => {
             let usia = ''; const calculatedAge = calculateAge(staff.tanggalLahir); if (calculatedAge !== null && calculatedAge >= 0) { usia = `${calculatedAge} TAHUN`; }
-            
-            // Logika untuk hanya menampilkan tombol edit & hapus jika bukan viewer
-            const actionButtonsHTML = !isViewer ? `
-                <button class="btn btn-sm btn__info btn-edit" data-id="${staff.id}"><i class="bi bi-pencil-fill"></i></button>
-                <button class="btn btn-sm btn__danger btn-delete" data-id="${staff.id}"><i class="bi bi-trash-fill"></i></button>
-            ` : '';
-
+            const actionButtonsHTML = !isViewer ? `<button class="btn btn-sm btn__info btn-edit" data-id="${staff.id}"><i class="bi bi-pencil-fill"></i></button><button class="btn btn-sm btn__danger btn-delete" data-id="${staff.id}"><i class="bi bi-trash-fill"></i></button>` : '';
             const row = `<tr><td>${index + 1}</td><td>${staff.namaStaff || ''}</td><td>${staff.noPassport || ''}</td><td>${staff.jabatan || ''}</td><td>${staff.tempatLahir || ''}</td><td>${staff.tanggalLahir || ''}</td><td>${usia}</td><td>${staff.emailKerja || ''}</td><td>${staff.adminIdn || ''}</td><td><div class="button-wrapper" style="justify-content: flex-start; margin: 0; gap: 5px;"><button class="btn btn-sm btn__view btn-view-staff" data-id="${staff.id}"><i class="bi bi-eye-fill"></i></button>${actionButtonsHTML}</div></td></tr>`;
             staffTableBody.innerHTML += row;
         });
     }
 
-    function openViewModal(staff) { /* ... (Fungsi ini tetap sama) ... */ }
-
-    // Fungsi ini tidak perlu diubah, export tetap diizinkan untuk semua
+    // --- FUNGSI LENGKAP UNTUK MODAL LIHAT STAFF ---
+    function openViewModal(staff) {
+        document.getElementById('view-modal-title').textContent = `Lihat Data Staff: ${staff.namaStaff || ''}`;
+        document.getElementById('view-nama-staff').textContent = staff.namaStaff || '-';
+        document.getElementById('view-no-passport').textContent = staff.noPassport || '-';
+        document.getElementById('view-jabatan').textContent = staff.jabatan || '-';
+        document.getElementById('view-tempat-lahir').textContent = staff.tempatLahir || '-';
+        document.getElementById('view-tanggal-lahir').textContent = staff.tanggalLahir || '-';
+        const age = calculateAge(staff.tanggalLahir);
+        document.getElementById('view-usia').textContent = age !== null ? `${age} TAHUN` : '-';
+        document.getElementById('view-jenis-kelamin').textContent = staff.jenisKelamin || '-';
+        document.getElementById('view-kamar-mess').textContent = staff.kamarMess || '-';
+        document.getElementById('view-tgl-gabung-smb').textContent = staff.tglGabungSmb || '-';
+        document.getElementById('view-masa-kerja').textContent = calculateTenure(staff.tglGabungSmb) || '-';
+        document.getElementById('view-join-togelup').textContent = staff.joinTogelup || '-';
+        document.getElementById('view-jam-kerja').textContent = staff.jamKerja || '-';
+        document.getElementById('view-admin-idn').textContent = staff.adminIdn || '-';
+        document.getElementById('view-admin-power').textContent = staff.adminPower || '-';
+        document.getElementById('view-email-kerja').textContent = staff.emailKerja || '-';
+        staffViewModal.style.display = 'flex';
+    }
+    
     async function exportToExcel() {
         const staffList = await getStoredStaff();
         if (staffList.length === 0) { alert("Tidak ada data staff untuk di-export."); return; }
@@ -233,7 +237,7 @@ function initializeApp(isViewer) { // Terima status pengguna (viewer atau bukan)
     
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
-        if (isViewer) return; // Guard clause: jangan proses jika viewer
+        if (isViewer) return;
         const inputText = reportInput.value;
         if (inputText.trim() === "") return;
         const newError = parseReportText(inputText);
@@ -244,7 +248,7 @@ function initializeApp(isViewer) { // Terima status pengguna (viewer atau bukan)
     });
 
     clearButton.addEventListener('click', async () => {
-        if (isViewer) return; // Guard clause: jangan proses jika viewer
+        if (isViewer) return;
         if (confirm('APAKAH ANDA YAKIN? Semua data KESALAHAN akan dihapus permanen.')) {
             await deleteAllErrors();
             updateDashboard();
@@ -253,15 +257,7 @@ function initializeApp(isViewer) { // Terima status pengguna (viewer atau bukan)
     });
 
     [fromDateEl, toDateEl, employeeSearchEl].forEach(el => el.addEventListener('input', updateDashboard));
-    
-    addStaffBtn.addEventListener('click', () => { 
-        if(isViewer) return; // Guard clause
-        staffForm.reset(); 
-        document.getElementById('staff-id').value = ''; 
-        modalTitle.textContent = 'Tambah Staff Baru'; 
-        staffFormModal.style.display = 'flex'; 
-    });
-
+    addStaffBtn.addEventListener('click', () => { if(isViewer) return; staffForm.reset(); document.getElementById('staff-id').value = ''; modalTitle.textContent = 'Tambah Staff Baru'; staffFormModal.style.display = 'flex'; });
     closeFormModalBtn.addEventListener('click', () => { staffFormModal.style.display = 'none'; });
     window.addEventListener('click', (event) => { if (event.target == staffFormModal) { staffFormModal.style.display = 'none'; } });
     closeViewModalBtn.addEventListener('click', () => { staffViewModal.style.display = 'none'; });
@@ -271,7 +267,7 @@ function initializeApp(isViewer) { // Terima status pengguna (viewer atau bukan)
 
     staffForm.addEventListener('submit', async (event) => {
         event.preventDefault();
-        if (isViewer) return; // Guard clause
+        if (isViewer) return;
         const staffId = document.getElementById('staff-id').value;
         const staffData = {
             namaStaff: document.getElementById('nama-staff').value, noPassport: document.getElementById('no-passport').value,
@@ -294,17 +290,34 @@ function initializeApp(isViewer) { // Terima status pengguna (viewer atau bukan)
         const staffList = await getStoredStaff();
         const staffToActOn = staffList.find(s => s.id === id);
         if (!staffToActOn) return;
+
         if (target.classList.contains('btn-view-staff')) {
             openViewModal(staffToActOn);
         } else if (target.classList.contains('btn-delete')) {
-            if (isViewer) return; // Guard clause
+            if (isViewer) return;
             if (confirm('Apakah Anda yakin ingin menghapus data staff ini?')) {
                 await deleteSingleStaff(id);
                 renderStaffTable();
             }
         } else if (target.classList.contains('btn-edit')) {
-            if (isViewer) return; // Guard clause
-            // ... (Fungsi isi form untuk edit tetap sama) ...
+            if (isViewer) return;
+            // --- FUNGSI LENGKAP UNTUK MENGISI FORM EDIT ---
+            modalTitle.textContent = 'Edit Data Staff';
+            document.getElementById('staff-id').value = staffToActOn.id;
+            document.getElementById('nama-staff').value = staffToActOn.namaStaff || '';
+            document.getElementById('no-passport').value = staffToActOn.noPassport || '';
+            document.getElementById('jabatan').value = staffToActOn.jabatan || '';
+            document.getElementById('tempat-lahir').value = staffToActOn.tempatLahir || '';
+            document.getElementById('tanggal-lahir').value = staffToActOn.tanggalLahir || '';
+            document.getElementById('jenis-kelamin').value = staffToActOn.jenisKelamin || 'Laki-laki';
+            document.getElementById('kamar-mess').value = staffToActOn.kamarMess || '';
+            document.getElementById('tgl-gabung-smb').value = staffToActOn.tglGabungSmb || '';
+            document.getElementById('join-togelup').value = staffToActOn.joinTogelup || '';
+            document.getElementById('jam-kerja').value = staffToActOn.jamKerja || '';
+            document.getElementById('admin-idn').value = staffToActOn.adminIdn || '';
+            document.getElementById('admin-power').value = staffToActOn.adminPower || '';
+            document.getElementById('email-kerja').value = staffToActOn.emailKerja || '';
+            staffFormModal.style.display = 'flex';
         }
     });
 
@@ -318,7 +331,7 @@ function initializeApp(isViewer) { // Terima status pengguna (viewer atau bukan)
         if (target.classList.contains('btn-view-error')) {
             openErrorViewModal(errorToActOn);
         } else if (target.classList.contains('btn-delete-error')) {
-            if (isViewer) return; // Guard clause
+            if (isViewer) return;
             if (confirm('Apakah Anda yakin ingin menghapus data kesalahan ini?')) {
                 await deleteSingleError(errorId);
                 updateDashboard();
@@ -338,19 +351,13 @@ function initializeApp(isViewer) { // Terima status pengguna (viewer atau bukan)
 // --- PEMERIKSAAN AUTENTIKASI ---
 onAuthStateChanged(auth, (user) => {
     if (user) {
-        // Daftar email yang hanya bisa melihat
         const viewerEmails = [
             'ksbukdosup.smb01@gmail.com',
             'ksbukdosup.smb02@gmail.com',
             'ksbukdosup.smb03@gmail.com'
         ];
-        
-        // Cek apakah email pengguna yang login ada di dalam daftar viewer (abaikan huruf besar/kecil)
         const isViewer = user.email && viewerEmails.includes(user.email.toLowerCase());
-        
-        // Jalankan aplikasi dengan memberikan status hak akses pengguna
         initializeApp(isViewer);
-        
         document.getElementById('logout-btn').addEventListener('click', (e) => {
             e.preventDefault();
             signOut(auth);
