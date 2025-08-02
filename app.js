@@ -69,9 +69,8 @@ function initializeApp(isViewer) {
         navToActivate.classList.add('active');
     }
 
-    // --- FUNGSI GOOGLE SHEET YANG DIPERBARUI DENGAN LINK ANDA ---
+    // === PERBAIKAN UTAMA DI FUNGSI INI ===
     async function fetchAndRenderLivechatData() {
-        // Menggunakan URL yang Anda berikan secara langsung. Ini adalah cara yang paling benar.
         const googleSheetUrl = `https://docs.google.com/spreadsheets/d/e/2PACX-1vTx_JjCSDeqgGnDqT8oWbT_zcVOX2W8UMx1oG5aCsvKHzWxhXNdMGOWbK-v6jzK0twmiOM4LGpZuQzJ/pub?output=csv&_=${new Date().getTime()}`;
 
         livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center;">Mengambil data...</td></tr>`;
@@ -83,20 +82,25 @@ function initializeApp(isViewer) {
             }
             const csvText = await response.text();
             
-            // Memecah CSV menjadi baris, lalu menghapus 2 baris header pertama (A1 dan A2)
-            const dataRows = csvText.trim().split('\n').slice(2);
+            // Memecah CSV menjadi baris, lalu menghapus 3 baris header pertama
+            // untuk memulai dari data di baris ke-4.
+            const dataRows = csvText.trim().split('\n').slice(3);
 
-            if (dataRows.length === 0) {
-                livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; font-style:italic;">Tidak ada data pada rentang yang ditentukan.</td></tr>`;
+            if (dataRows.length === 0 || (dataRows.length === 1 && dataRows[0].trim() === '')) {
+                livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; font-style:italic;">Tidak ada data untuk ditampilkan.</td></tr>`;
                 return;
             }
 
             livechatTableBody.innerHTML = ""; // Kosongkan tabel sebelum mengisi
             
-            // Memproses setiap baris untuk diambil 3 kolom pertama (A, B, C)
             dataRows.forEach(rowText => {
+                // Jangan proses baris yang kosong
+                if (rowText.trim() === '') return;
+                
                 const columns = rowText.split(',').map(col => col.trim().replace(/^"|"$/g, ''));
-                if (columns.length >= 3) {
+                
+                // Pastikan kolom A, B, dan C tidak kosong
+                if (columns.length >= 3 && (columns[0] || columns[1] || columns[2])) {
                     const tableRow = `
                         <tr>
                             <td>${columns[0] || ''}</td>
@@ -107,6 +111,11 @@ function initializeApp(isViewer) {
                     livechatTableBody.innerHTML += tableRow;
                 }
             });
+
+            // Jika setelah loop tabel masih kosong, berarti tidak ada data valid
+            if(livechatTableBody.innerHTML === "") {
+                 livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; font-style:italic;">Tidak ada data valid untuk ditampilkan.</td></tr>`;
+            }
 
         } catch (error) {
             console.error("Gagal mengambil data dari Google Sheet:", error);
