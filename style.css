@@ -11,14 +11,24 @@ body {
     -webkit-font-smoothing: antialiased; font-family: 'Raleway', sans-serif; color: hsl(144 50 94 / 70%); margin: 0;
 }
 .main-container { max-width: 95%; margin: 20px auto; padding: 0 20px; }
-/* GAYA NAVBAR ATAS LAMA (DIHAPUS/TIDAK DIGUNAKAN) */
-.navbar-top { display: none; } 
+
+/* === GAYA NAVBAR ATAS LAMA (DISEMBUNYIKAN) === */
+.navbar-top { display: none; }
 .nav-container { display: none; }
 .navbar-brand { display: none; }
 .navbar-links { display: none; }
 
-.nav-link { color: hsl(144 50 94 / 70%); text-decoration: none; padding: 10px 15px; border-radius: 99em; transition: background-color 0.3s, color 0.3s; cursor: pointer; }
-.nav-link:hover, .nav-link.active { background-color: hsla(144deg 50% 50% / 100%); color: white; }
+/* GAYA DASAR .nav-link (DIPAKAI DI SIDEBAR) */
+.nav-link { 
+    color: hsl(144 50 94 / 70%); 
+    text-decoration: none; 
+    transition: background-color 0.3s, color 0.3s; 
+    cursor: pointer; 
+}
+.nav-link.active {
+    /* Gaya .active akan ditangani oleh spesifisitas yang lebih tinggi di bawah */
+}
+
 .card { background: rgba(38, 38, 38, 0.7); border: 1px solid hsl(144 50 0 / 90%); border-radius: 10px; margin-bottom: 20px; backdrop-filter: blur(5px); }
 .card-header { background: hsla(144deg 10% 22% / 35%); padding: 15px; font-weight: bold; font-size: 1.2em; border-bottom: 1px solid hsl(144 50 0 / 90%); }
 .card-body { padding: 20px; }
@@ -140,6 +150,7 @@ tbody tr:hover { background: hsla(144deg 50% 50% / 20%); }
     margin-bottom: 20px;
 }
 
+
 /* === GAYA UNTUK NAVIGASI SAMPING (BARU) === */
 
 /* Atur layout utama menjadi flexbox */
@@ -216,11 +227,10 @@ tbody tr:hover { background: hsla(144deg 50% 50% / 20%); }
 .main-content-wrapper {
     margin-left: 250px; /* Lebar yang sama dengan sidebar */
     width: calc(100% - 250px);
-    padding: 20px;
 }
 
 .main-content-wrapper .main-container {
     max-width: 1400px; /* Menjaga lebar maksimum konten seperti sebelumnya */
     margin: 0 auto;
-    padding: 0; /* Reset padding karena sudah ada di wrapper */
+    padding: 20px; /* Memberi padding pada konten utama */
 }
