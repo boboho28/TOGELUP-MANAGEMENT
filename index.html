@@ -56,7 +56,19 @@
                     </div>
                 </div>
             </section>
-            <section id="page-boxnama" style="display: none;"><div class="card"><div class="card-header"><i class="bi bi-person-badge"></i> Ringkasan Kesalahan per Staff</div><div class="card-body"><div id="staff-summary-container"></div></div></div></section>
+            
+            <section id="page-boxnama" style="display: none;">
+                <div class="card">
+                    <div class="card-header"><i class="bi bi-person-badge"></i> Ringkasan Kesalahan per Staff</div>
+                    <div class="card-body">
+                        <!-- === KOTAK PENCARIAN BARU DITAMBAHKAN DI SINI === -->
+                        <div class="search-container">
+                            <input type="text" id="box-nama-search" placeholder="Ketik nama staff untuk memfilter...">
+                        </div>
+                        <div id="staff-summary-container"></div>
+                    </div>
+                </div>
+            </section>
             
             <section id="page-datastaff" style="display: none;">
                 <div class="card">
@@ -96,9 +108,7 @@
                                         <th>Jenis Kesalahan</th>
                                     </tr>
                                 </thead>
-                                <tbody id="livechat-table-body">
-                                    <!-- Data dari Google Sheet akan dimuat di sini -->
-                                </tbody>
+                                <tbody id="livechat-table-body"></tbody>
                             </table>
                         </div>
                     </div>
@@ -125,7 +135,6 @@
                             </tr>
                         </thead>
                         <tbody id="total-errors-table-body">
-                            <!-- Data total kesalahan akan dimuat di sini -->
                         </tbody>
                     </table>
                 </div>
