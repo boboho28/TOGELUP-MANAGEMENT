@@ -82,8 +82,8 @@ function initializeApp(isViewer) {
         navToActivate.classList.add('active');
     }
 
-    // === FUNGSI GOOGLE SHEET DENGAN LOGIKA BARU YANG LEBIH ANDAL ===
     async function fetchAndRenderLivechatData() {
+        // Menggunakan URL baru yang Anda berikan, dengan trik anti-cache
         const googleSheetUrl = `https://docs.google.com/spreadsheets/d/e/2PACX-1vTx_JjCSDeqgGnDqT8oWbT_zcVOX2W8UMx1oG5aCsvKHzWxhXNdMGOWbK-v6jzK0twmiOM4LGpZuQzJ/pub?gid=593722510&single=true&output=csv&_=${new Date().getTime()}`;
 
         livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center;">Mengambil data...</td></tr>`;
