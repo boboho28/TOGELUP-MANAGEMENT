@@ -10,13 +10,96 @@ body {
     background: radial-gradient(hsl(144 50 0 / 0%), hsl(144 50 0 / 24%)), radial-gradient(circle at 50% 50%, hsl(144 50 0 / 0%), hsl(144 50 0 / 24%)), linear-gradient(hsl(144 50 6 / 0%), hsl(144 50 6 / 30%)), #262626;
     -webkit-font-smoothing: antialiased; font-family: 'Raleway', sans-serif; color: hsl(144 50 94 / 70%); margin: 0;
 }
-.main-container { max-width: 95%; margin: 20px auto; padding: 0 20px; }
-.navbar-top { padding: 10px 20px; background: #1a1a1a; border-bottom: 2px solid hsl(144 50 0 / 90%); display: flex; align-items: center; justify-content: center; }
-.nav-container { width: 100%; max-width: 1400px; display: flex; justify-content: space-between; align-items: center; }
-.navbar-brand { font-weight: bold; color: white; text-decoration: none; font-size: 1.2em; }
-.navbar-links { display: flex; flex-wrap: wrap; gap: 10px; }
-.nav-link { color: hsl(144 50 94 / 70%); text-decoration: none; padding: 10px 15px; border-radius: 99em; transition: background-color 0.3s, color 0.3s; cursor: pointer; }
-.nav-link:hover, .nav-link.active { background-color: hsla(144deg 50% 50% / 100%); color: white; }
+.main-container { max-width: 100%; margin: 0 auto; padding: 0; }
+#app-content { display: flex !important; }
+
+/* ======== GAYA SIDEBAR BARU ======== */
+.sidebar {
+    width: 260px;
+    height: 100vh;
+    background: #21212d; /* Warna gelap dari gambar */
+    color: #c5c5c5;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    flex-shrink: 0;
+    border-right: 2px solid hsl(144 50 0 / 90%);
+}
+.sidebar-header {
+    padding: 24px 20px;
+    text-align: left;
+}
+.sidebar-header h3 {
+    color: #e4911a; /* Warna oranye dari gambar */
+    font-weight: 700;
+    margin: 0;
+    font-size: 1.8em;
+    letter-spacing: 1px;
+}
+.sidebar-nav {
+    list-style: none;
+    padding: 0;
+    margin: 20px 0 0 0;
+    flex-grow: 1;
+}
+.sidebar-nav li a.nav-link {
+    display: flex;
+    align-items: center;
+    padding: 14px 25px;
+    color: #a0a0b0;
+    text-decoration: none;
+    gap: 15px;
+    font-size: 1em;
+    font-weight: 500;
+    border-radius: 0; /* Menghapus border-radius dari .nav-link lama */
+    transition: background-color 0.2s, color 0.2s;
+    white-space: nowrap;
+}
+.sidebar-nav li a.nav-link i {
+    font-size: 1.2em;
+}
+.sidebar-nav li a.nav-link:hover, 
+.sidebar-nav li a.nav-link.active {
+    background-color: hsla(144deg 50% 50% / 10%);
+    color: white;
+}
+.sidebar-footer {
+    padding: 15px;
+}
+.sidebar-footer #logout-btn {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 14px 25px;
+    color: #ff4d4d !important;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+.sidebar-footer #logout-btn:hover {
+    background-color: hsla(0, 100%, 50%, 0.1);
+}
+
+/* ======== KONTEN UTAMA ======== */
+.main-content {
+    margin-left: 260px; /* Lebar yang sama dengan sidebar */
+    width: calc(100% - 260px);
+    padding: 20px;
+}
+
+/* Menghapus gaya navigasi atas yang lama */
+.navbar-top, .navbar-links { display: none; }
+
+/* Penyesuaian gaya link navigasi lama */
+.nav-link { 
+    padding: 10px 15px;
+    border-radius: 99em; 
+    transition: background-color 0.3s, color 0.3s; 
+    cursor: pointer;
+}
+
 .card { background: rgba(38, 38, 38, 0.7); border: 1px solid hsl(144 50 0 / 90%); border-radius: 10px; margin-bottom: 20px; backdrop-filter: blur(5px); }
 .card-header { background: hsla(144deg 10% 22% / 35%); padding: 15px; font-weight: bold; font-size: 1.2em; border-bottom: 1px solid hsl(144 50 0 / 90%); }
 .card-body { padding: 20px; }
