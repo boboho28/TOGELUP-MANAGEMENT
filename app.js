@@ -9,11 +9,13 @@ function initializeApp(isViewer) {
     const navDataStaff = document.getElementById('nav-datastaff');
     const navTambah = document.getElementById('nav-tambah');
     const navLivechat = document.getElementById('nav-livechat');
+    const navRekening = document.getElementById('nav-rekening');
     const pageKesalahan = document.getElementById('page-kesalahan');
     const pageBoxNama = document.getElementById('page-boxnama');
     const pageDataStaff = document.getElementById('page-datastaff');
     const pageTambah = document.getElementById('page-tambah');
     const pageLivechat = document.getElementById('page-livechat');
+    const pageRekening = document.getElementById('page-rekening');
     const form = document.getElementById('auto-parser-form');
     const reportInput = document.getElementById('report-input');
     const messageArea = document.getElementById('message-area');
@@ -42,8 +44,10 @@ function initializeApp(isViewer) {
     const closeTotalErrorsModalBtn = document.querySelector('#total-errors-modal .modal-close');
     const totalErrorsTableBody = document.getElementById('total-errors-table-body');
     const boxNamaSearchEl = document.getElementById('box-nama-search');
+    const errorsChartCanvas = document.getElementById('errors-chart');
 
     let staffErrorTotals = [];
+    let errorsChart = null;
 
     // --- KONEKSI KE FIREBASE COLLECTIONS ---
     const errorsCollectionRef = collection(db, "kesalahan");
@@ -68,13 +72,14 @@ function initializeApp(isViewer) {
     }
 
     function showPage(pageId) {
-        [pageKesalahan, pageBoxNama, pageDataStaff, pageTambah, pageLivechat].forEach(p => p.style.display = 'none');
-        [navKesalahan, navBoxNama, navDataStaff, navTambah, navLivechat].forEach(n => n.classList.remove('active'));
+        [pageKesalahan, pageBoxNama, pageDataStaff, pageTambah, pageLivechat, pageRekening].forEach(p => p.style.display = 'none');
+        [navKesalahan, navBoxNama, navDataStaff, navTambah, navLivechat, navRekening].forEach(n => n.classList.remove('active'));
         let pageToShow, navToActivate;
         switch (pageId) {
             case 'boxnama': pageToShow = pageBoxNama; navToActivate = navBoxNama; renderStaffSummary(); break;
             case 'datastaff': pageToShow = pageDataStaff; navToActivate = navDataStaff; renderStaffTable(); break;
             case 'livechat': pageToShow = pageLivechat; navToActivate = navLivechat; fetchAndRenderLivechatData(); break;
+            case 'rekening': pageToShow = pageRekening; navToActivate = navRekening; renderErrorsChart(); break;
             case 'tambah': pageToShow = pageTambah; navToActivate = navTambah; break;
             default: pageToShow = pageKesalahan; navToActivate = navKesalahan; updateDashboard(); break;
         }
@@ -83,64 +88,48 @@ function initializeApp(isViewer) {
     }
 
     async function fetchAndRenderLivechatData() {
-        // Menggunakan URL baru yang Anda berikan, dengan trik anti-cache
         const googleSheetUrl = `https://docs.google.com/spreadsheets/d/e/2PACX-1vTx_JjCSDeqgGnDqT8oWbT_zcVOX2W8UMx1oG5aCsvKHzWxhXNdMGOWbK-v6jzK0twmiOM4LGpZuQzJ/pub?gid=593722510&single=true&output=csv&_=${new Date().getTime()}`;
-
-        livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center;">Mengambil data...</td></tr>`;
-
+        livechatTableBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Mengambil data...</td></tr>`;
         try {
             const response = await fetch(googleSheetUrl);
             if (!response.ok) throw new Error(`Gagal mengambil data. Status: ${response.status}.`);
-            
             const csvText = await response.text();
             const allRows = csvText.trim().split('\n');
 
-            // --- Bagian 1: Proses Tabel Log Kesalahan (Struktur Baru) ---
-            livechatTableBody.innerHTML = ""; // Kosongkan tabel
-            let currentDate = "Tidak ada tanggal";
+            // Bagian 1: Proses Tabel Log Kesalahan (Struktur Baru)
+            livechatTableBody.innerHTML = "";
             let dataFound = false;
-
-            // Langsung lewati 3 baris pertama
+            let currentDate = "";
             const dataRows = allRows.slice(3);
 
             for (const rowText of dataRows) {
-                if (rowText.trim() === '' || rowText.toUpperCase().includes('TOTAL')) break;
-
+                if (rowText.trim() === '' || rowText.toUpperCase().startsWith(',,,')) continue;
+                if (rowText.toUpperCase().includes('TOTAL')) break;
                 const columns = rowText.split(',').map(col => col.trim().replace(/^"|"$/g, ''));
-                
-                // Cek apakah ini baris tanggal (kolom pertama kosong, kolom kedua berisi tanggal)
-                const potentialDate = (columns[1] || '').trim();
-                const isDateRow = /^\d{2}\/\d{2}\/\d{4}$/.test(potentialDate) && (columns[0] || '').trim() === '';
-
+                const isDateRow = (columns[0] || '').trim() === '' && /^\d{2}\/\d{2}\/\d{4}$/.test((columns[1] || '').trim());
                 if (isDateRow) {
-                    currentDate = potentialDate;
-                    continue; // Ini baris tanggal, lanjut ke baris berikutnya
-                }
-
-                // Jika bukan baris tanggal, anggap sebagai baris data
-                if (columns.length >= 4) {
+                    currentDate = columns[1].trim();
+                } else if (columns.length >= 4) {
                     const namaCS = (columns[0] || '').trim();
+                    const link = (columns[2] || '').trim();
                     const jenisKesalahan = (columns[3] || '').trim();
-
                     if (namaCS || jenisKesalahan) {
                         dataFound = true;
-                        livechatTableBody.innerHTML += `<tr><td>${currentDate}</td><td>${namaCS}</td><td style="white-space: normal;">${jenisKesalahan}</td></tr>`;
+                        livechatTableBody.innerHTML += `<tr><td>${currentDate}</td><td>${namaCS}</td><td><a href="${link}" target="_blank">${link}</a></td><td style="white-space: normal;">${jenisKesalahan}</td></tr>`;
                     }
                 }
             }
-
             if (!dataFound) {
-                livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; font-style:italic;">Tidak ada data valid yang dapat ditampilkan.</td></tr>`;
+                livechatTableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; font-style:italic;">Tidak ada data valid yang dapat ditampilkan.</td></tr>`;
             }
 
-            // --- Bagian 2: Proses Tabel Total Kesalahan (Kolom H, I) ---
+            // Bagian 2: Proses Tabel Total Kesalahan (Kolom H, I)
             staffErrorTotals = [];
             let totalsHeaderIndex = allRows.findIndex(row => row.toUpperCase().includes('NAMA STAFF') && row.toUpperCase().includes('TOTAL KESALAHAN'));
             if (totalsHeaderIndex !== -1) {
                 const headerColumns = allRows[totalsHeaderIndex].split(',');
                 const nameIndex = headerColumns.findIndex(h => h.toUpperCase().includes('NAMA STAFF'));
                 const totalIndex = headerColumns.findIndex(h => h.toUpperCase().includes('TOTAL KESALAHAN'));
-
                 if (nameIndex !== -1 && totalIndex !== -1) {
                     for (let i = totalsHeaderIndex + 1; i < allRows.length; i++) {
                         const rowText = allRows[i];
@@ -156,10 +145,9 @@ function initializeApp(isViewer) {
                     }
                 }
             }
-
         } catch (error) {
             console.error("Gagal memproses data Google Sheet:", error);
-            livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color: #ff4d4d;">Terjadi kesalahan. Periksa console log.</td></tr>`;
+            livechatTableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: #ff4d4d;">Terjadi kesalahan. Periksa console log.</td></tr>`;
         }
     }
 
@@ -262,17 +250,13 @@ function initializeApp(isViewer) {
             else if (perihal.includes("withdraw")) staffData[normalizedName].withdraw++;
             else if (perihal.includes("telat")) staffData[normalizedName].telat++;
         });
-
         const searchTerm = boxNamaSearchEl.value.toLowerCase();
         const staffNames = Object.keys(staffData).filter(name => name.toLowerCase().includes(searchTerm)).sort();
-        
         staffSummaryContainer.innerHTML = "";
-
         if (staffNames.length === 0) {
             staffSummaryContainer.innerHTML = '<p style="text-align:center; font-style:italic;">Tidak ada data staff yang cocok dengan pencarian.</p>';
             return;
         }
-
         staffNames.forEach(name => {
             const data = staffData[name];
             const staffBoxHTML = `<div class="staff-box"><div class="staff-box-header">${name}</div><div class="staff-box-categories"><div class="category-item">Deposit</div><div class="category-item">Withdraw</div><div class="category-item">Telat</div></div><div class="staff-box-counts"><div class="count-item">${data.deposit}</div><div class="count-item">${data.withdraw}</div><div class="count-item">${data.telat}</div></div></div>`;
@@ -378,8 +362,69 @@ function initializeApp(isViewer) {
         XLSX.writeFile(workbook, "Data_Staff.xlsx");
     }
 
+    function renderErrorsChart() {
+        try {
+            if (errorsChart) {
+                errorsChart.destroy();
+            }
+            if (staffErrorTotals.length === 0) {
+                const ctx = errorsChartCanvas.getContext('2d');
+                ctx.clearRect(0, 0, errorsChartCanvas.width, errorsChartCanvas.height);
+                ctx.fillStyle = 'hsl(144 50 94 / 70%)';
+                ctx.textAlign = 'center';
+                ctx.font = "16px 'Raleway', sans-serif";
+                ctx.fillText("Data belum dimuat. Silakan buka tab 'CS LIVECHAT' terlebih dahulu untuk memuat data.", errorsChartCanvas.width / 2, 50);
+                return;
+            }
+            const sortedData = [...staffErrorTotals].sort((a, b) => parseInt(b.count) - parseInt(a.count));
+            const chartLabels = sortedData.map(item => item.name);
+            const chartData = sortedData.map(item => parseInt(item.count));
+            const maxErrors = Math.max(...chartData);
+            const minErrors = Math.min(...chartData);
+            const backgroundColors = chartData.map(count => {
+                if (count === maxErrors) return 'hsla(0, 70%, 50%, 0.7)';
+                if (count === minErrors) return 'hsla(144, 70%, 40%, 0.7)';
+                return 'hsla(220, 50%, 50%, 0.7)';
+            });
+            const borderColors = chartData.map(count => {
+                if (count === maxErrors) return 'hsl(0, 70%, 50%)';
+                if (count === minErrors) return 'hsl(144, 70%, 40%)';
+                return 'hsl(220, 50%, 50%)';
+            });
+            const ctx = errorsChartCanvas.getContext('2d');
+            errorsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: 'Total Kesalahan',
+                        data: chartData,
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    scales: {
+                        y: { beginAtZero: true, ticks: { color: 'hsl(144 50 94 / 70%)' } },
+                        x: { ticks: { color: 'hsl(144 50 94 / 70%)' } }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: true, text: 'Total Kesalahan per Staff', color: '#fff', font: { size: 18 } }
+                    }
+                }
+            });
+        } catch (err) {
+            console.error("Gagal membuat grafik:", err);
+        }
+    }
+
     // --- BAGIAN 4: EVENT LISTENERS ---
-    [navKesalahan, navBoxNama, navDataStaff, navTambah, navLivechat].forEach(nav => nav.addEventListener('click', (e) => {
+    [navKesalahan, navBoxNama, navDataStaff, navTambah, navLivechat, navRekening].forEach(nav => nav.addEventListener('click', (e) => {
         e.preventDefault();
         showPage(nav.id.split('-')[1]);
     }));
@@ -408,6 +453,9 @@ function initializeApp(isViewer) {
     [fromDateEl, toDateEl, employeeSearchEl].forEach(el => el.addEventListener('input', updateDashboard));
     staffNameSearchEl.addEventListener('input', renderStaffTable);
     boxNamaSearchEl.addEventListener('input', renderStaffSummary);
+    livechatSearchEl.addEventListener('input', () => {
+        fetchAndRenderLivechatData(livechatSearchEl.value);
+    });
     addStaffBtn.addEventListener('click', () => { if(isViewer) return; staffForm.reset(); document.getElementById('staff-id').value = ''; modalTitle.textContent = 'Tambah Staff Baru'; staffFormModal.style.display = 'flex'; });
     
     closeFormModalBtn.addEventListener('click', () => { staffFormModal.style.display = 'none'; });
