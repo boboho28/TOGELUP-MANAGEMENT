@@ -61,13 +61,12 @@ function initializeApp(isViewer) {
 
     // --- FUNGSI-FUNGSI UTAMA ---
 
-    // === FUNGSI BARU UNTUK MEMBERSIHKAN NAMA STAFF ===
+    // === FUNGSI NORMALISASI NAMA STAFF YANG DISEMPURNAKAN ===
     function normalizeStaffName(name) {
         if (!name || typeof name !== 'string') return '';
-        // 1. Ganti " - " dengan spasi.
-        // 2. Ganti spasi ganda dengan spasi tunggal.
-        // 3. Hapus spasi di awal/akhir.
-        return name.replace(/\s+-\s+/g, ' ').replace(/\s+/g, ' ').trim();
+        // Ganti semua karakter yang BUKAN huruf, angka, atau spasi dengan satu spasi.
+        // Kemudian rapikan spasi ganda menjadi tunggal.
+        return name.replace(/[^a-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
     }
 
     function showPage(pageId) {
@@ -152,17 +151,16 @@ function initializeApp(isViewer) {
         totalErrorsModal.style.display = 'flex';
     }
 
-    // === PERUBAHAN 1: Saat menyimpan, gunakan nama yang sudah dinormalisasi ===
     function parseReportText(text) {
         const findValue = key => (new RegExp(`^${key}\\s*:\\s*(.*)$`, "im")).exec(text);
         let staffName = "Tidak Ditemukan";
         const staffMatch = findValue("Staff");
         if (staffMatch && staffMatch[1]) {
-            staffName = normalizeStaffName(staffMatch[1]); // Gunakan fungsi normalisasi
+            staffName = normalizeStaffName(staffMatch[1].trim()); // Normalisasi saat parsing
         }
         return {
             perihal: findValue("Perihal") ? findValue("Perihal")[1].trim() : "Tidak Ditemukan",
-            staff: staffName, // Simpan nama yang sudah bersih
+            staff: staffName,
             full_text: text
         };
     }
@@ -188,22 +186,18 @@ function initializeApp(isViewer) {
         }
     }
 
-    // === PERUBAHAN 2: Saat menampilkan tabel, gunakan nama yang sudah dinormalisasi ===
     async function updateDashboard() {
         const errors = await getStoredErrors();
         const fromDate = fromDateEl.value ? new Date(fromDateEl.value).setHours(0, 0, 0, 0) : null;
         const toDate = toDateEl.value ? new Date(toDateEl.value).setHours(23, 59, 59, 999) : null;
-        const searchTerm = employeeSearchEl.value.toLowerCase();
-        
+        const searchTerm = normalizeStaffName(employeeSearchEl.value.toLowerCase()); // Normalisasi input pencarian
         let filteredErrors = errors.filter(e => {
             const errorTimestamp = e.createdAt?.toDate();
             if (!errorTimestamp) return false;
             const dateMatch = (!fromDate || errorTimestamp >= fromDate) && (!toDate || errorTimestamp <= toDate);
-            // Cari berdasarkan nama yang sudah dinormalisasi
             const employeeMatch = (searchTerm === "" || (e.staff && normalizeStaffName(e.staff).toLowerCase().includes(searchTerm)));
             return dateMatch && employeeMatch;
         });
-
         const countDeposit = filteredErrors.filter(e => e.perihal.toLowerCase().includes("deposit")).length;
         const countWithdraw = filteredErrors.filter(e => e.perihal.toLowerCase().includes("withdraw")).length;
         const countLate = filteredErrors.filter(e => e.perihal.toLowerCase().includes("telat")).length;
@@ -223,7 +217,7 @@ function initializeApp(isViewer) {
                 <tr>
                     <td>${err.id.substring(0, 6)}...</td>
                     <td>${err.createdAt ? err.createdAt.toDate().toLocaleString("id-ID") : 'No date'}</td>
-                    <td>${normalizeStaffName(err.staff)}</td> 
+                    <td>${normalizeStaffName(err.staff)}</td>
                     <td>Staff</td>
                     <td>${err.perihal}</td>
                     <td><div class="button-wrapper" style="justify-content: center; margin: 0; gap: 10px;"><button class="btn btn-sm btn__view btn-view-error" data-id="${err.id}"><i class="bi bi-eye-fill"></i></button>${deleteButtonHTML}</div></td>
@@ -238,12 +232,11 @@ function initializeApp(isViewer) {
         errorViewModal.style.display = 'flex';
     }
 
-    // === PERUBAHAN 3: Saat membuat Box Nama, kelompokkan berdasarkan nama yang sudah dinormalisasi ===
     async function renderStaffSummary() {
         const errors = await getStoredErrors();
         const staffData = {};
         errors.forEach(err => {
-            const normalizedName = normalizeStaffName(err.staff); // Normalisasi nama
+            const normalizedName = normalizeStaffName(err.staff);
             if (!staffData[normalizedName]) {
                 staffData[normalizedName] = { deposit: 0, withdraw: 0, telat: 0 };
             }
@@ -332,14 +325,43 @@ function initializeApp(isViewer) {
         });
     }
 
-    function openViewModal(staff) { /* ... Fungsi ini tetap sama ... */ }
-    async function exportToExcel() { /* ... Fungsi ini tetap sama ... */ }
+    function openViewModal(staff) {
+        document.getElementById('view-modal-title').textContent = `Lihat Data Staff: ${staff.namaStaff || ''}`;
+        document.getElementById('view-nama-staff').textContent = staff.namaStaff || '-';
+        document.getElementById('view-no-passport').textContent = staff.noPassport || '-';
+        document.getElementById('view-jabatan').textContent = staff.jabatan || '-';
+        document.getElementById('view-tempat-lahir').textContent = staff.tempatLahir || '-';
+        document.getElementById('view-tanggal-lahir').textContent = staff.tanggalLahir || '-';
+        const age = calculateAge(staff.tanggalLahir);
+        document.getElementById('view-usia').textContent = age !== null ? `${age} TAHUN` : '-';
+        document.getElementById('view-jenis-kelamin').textContent = staff.jenisKelamin || '-';
+        document.getElementById('view-kamar-mess').textContent = staff.kamarMess || '-';
+        document.getElementById('view-tgl-gabung-smb').textContent = staff.tglGabungSmb || '-';
+        document.getElementById('view-masa-kerja').textContent = calculateTenure(staff.tglGabungSmb) || '-';
+        document.getElementById('view-join-togelup').textContent = staff.joinTogelup || '-';
+        document.getElementById('view-jam-kerja').textContent = staff.jamKerja || '-';
+        document.getElementById('view-admin-idn').textContent = staff.adminIdn || '-';
+        document.getElementById('view-admin-power').textContent = staff.adminPower || '-';
+        document.getElementById('view-email-kerja').textContent = staff.emailKerja || '-';
+        staffViewModal.style.display = 'flex';
+    }
+    
+    async function exportToExcel() {
+        const staffList = await getStoredStaff();
+        if (staffList.length === 0) { alert("Tidak ada data staff untuk di-export."); return; }
+        const dataToExport = staffList.map((staff, index) => ({ 'NO': index + 1, 'NAMA STAFF': staff.namaStaff || '', 'No Passport': staff.noPassport || '', 'JABATAN': staff.jabatan || '' }));
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Data Staff");
+        XLSX.writeFile(workbook, "Data_Staff.xlsx");
+    }
 
     // --- BAGIAN 4: EVENT LISTENERS ---
     [navKesalahan, navBoxNama, navDataStaff, navTambah, navLivechat].forEach(nav => nav.addEventListener('click', (e) => {
         e.preventDefault();
         showPage(nav.id.split('-')[1]);
     }));
+    
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
         if (isViewer) return;
@@ -351,6 +373,7 @@ function initializeApp(isViewer) {
         form.reset();
         setTimeout(() => { messageArea.innerHTML = ""; showPage('kesalahan'); }, 1500);
     });
+
     clearButton.addEventListener('click', async () => {
         if (isViewer) return;
         if (confirm('APAKAH ANDA YAKIN? Semua data KESALAHAN akan dihapus permanen.')) {
@@ -359,20 +382,27 @@ function initializeApp(isViewer) {
             if (pageBoxNama.style.display === "block") { renderStaffSummary(); }
         }
     });
+
     [fromDateEl, toDateEl, employeeSearchEl].forEach(el => el.addEventListener('input', updateDashboard));
+    
     staffNameSearchEl.addEventListener('input', renderStaffTable);
+    
     addStaffBtn.addEventListener('click', () => { if(isViewer) return; staffForm.reset(); document.getElementById('staff-id').value = ''; modalTitle.textContent = 'Tambah Staff Baru'; staffFormModal.style.display = 'flex'; });
+    
     closeFormModalBtn.addEventListener('click', () => { staffFormModal.style.display = 'none'; });
     closeViewModalBtn.addEventListener('click', () => { staffViewModal.style.display = 'none'; });
     closeErrorViewModalBtn.addEventListener('click', () => { errorViewModal.style.display = 'none'; });
     closeTotalErrorsModalBtn.addEventListener('click', () => { totalErrorsModal.style.display = 'none'; });
+    
     window.addEventListener('click', (event) => {
         if (event.target == staffFormModal) { staffFormModal.style.display = 'none'; }
         if (event.target == staffViewModal) { staffViewModal.style.display = 'none'; }
         if (event.target == errorViewModal) { errorViewModal.style.display = 'none'; }
         if (event.target == totalErrorsModal) { totalErrorsModal.style.display = 'none'; }
     });
+
     showTotalErrorsBtn.addEventListener('click', openTotalErrorsModal);
+
     staffForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         if (isViewer) return;
@@ -390,8 +420,63 @@ function initializeApp(isViewer) {
         renderStaffTable();
         staffFormModal.style.display = 'none';
     });
-    staffTableBody.addEventListener('click', async (event) => { /* ... Event Listener ini tetap sama ... */ });
-    tableBody.addEventListener('click', async (event) => { /* ... Event Listener ini tetap sama ... */ });
+    
+    staffTableBody.addEventListener('click', async (event) => {
+        const target = event.target.closest('button');
+        if (!target) return;
+        const id = target.dataset.id;
+        const staffList = await getStoredStaff();
+        const staffToActOn = staffList.find(s => s.id === id);
+        if (!staffToActOn) return;
+
+        if (target.classList.contains('btn-view-staff')) {
+            openViewModal(staffToActOn);
+        } else if (target.classList.contains('btn-delete')) {
+            if (isViewer) return;
+            if (confirm('Apakah Anda yakin ingin menghapus data staff ini?')) {
+                await deleteSingleStaff(id);
+                renderStaffTable();
+            }
+        } else if (target.classList.contains('btn-edit')) {
+            if (isViewer) return;
+            modalTitle.textContent = 'Edit Data Staff';
+            document.getElementById('staff-id').value = staffToActOn.id;
+            document.getElementById('nama-staff').value = staffToActOn.namaStaff || '';
+            document.getElementById('no-passport').value = staffToActOn.noPassport || '';
+            document.getElementById('jabatan').value = staffToActOn.jabatan || '';
+            document.getElementById('tempat-lahir').value = staffToActOn.tempatLahir || '';
+            document.getElementById('tanggal-lahir').value = staffToActOn.tanggalLahir || '';
+            document.getElementById('jenis-kelamin').value = staffToActOn.jenisKelamin || 'Laki-laki';
+            document.getElementById('kamar-mess').value = staffToActOn.kamarMess || '';
+            document.getElementById('tgl-gabung-smb').value = staffToActOn.tglGabungSmb || '';
+            document.getElementById('join-togelup').value = staffToActOn.joinTogelup || '';
+            document.getElementById('jam-kerja').value = staffToActOn.jamKerja || '';
+            document.getElementById('admin-idn').value = staffToActOn.adminIdn || '';
+            document.getElementById('admin-power').value = staffToActOn.adminPower || '';
+            document.getElementById('email-kerja').value = staffToActOn.emailKerja || '';
+            staffFormModal.style.display = 'flex';
+        }
+    });
+
+    tableBody.addEventListener('click', async (event) => {
+        const target = event.target.closest('button');
+        if (!target) return;
+        const errorId = target.dataset.id;
+        const errors = await getStoredErrors();
+        const errorToActOn = errors.find(err => err.id === errorId);
+        if (!errorToActOn) return;
+        if (target.classList.contains('btn-view-error')) {
+            openErrorViewModal(errorToActOn);
+        } else if (target.classList.contains('btn-delete-error')) {
+            if (isViewer) return;
+            if (confirm('Apakah Anda yakin ingin menghapus data kesalahan ini?')) {
+                await deleteSingleError(errorId);
+                updateDashboard();
+                if (pageBoxNama.style.display === 'block') { renderStaffSummary(); }
+            }
+        }
+    });
+
     exportExcelBtn.addEventListener('click', exportToExcel);
 
     // --- INISIALISASI HALAMAN ---
