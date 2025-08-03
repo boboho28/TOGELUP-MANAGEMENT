@@ -82,9 +82,10 @@ function initializeApp(isViewer) {
         navToActivate.classList.add('active');
     }
 
-    // === FUNGSI GOOGLE SHEET YANG DIPERBAIKI DENGAN LOGIKA SEPARATOR TANGGAL ===
     async function fetchAndRenderLivechatData() {
+        // Menggunakan URL baru yang Anda berikan, dengan trik anti-cache
         const googleSheetUrl = `https://docs.google.com/spreadsheets/d/e/2PACX-1vTx_JjCSDeqgGnDqT8oWbT_zcVOX2W8UMx1oG5aCsvKHzWxhXNdMGOWbK-v6jzK0twmiOM4LGpZuQzJ/pub?gid=593722510&single=true&output=csv&_=${new Date().getTime()}`;
+
         livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center;">Mengambil data...</td></tr>`;
 
         try {
@@ -95,34 +96,35 @@ function initializeApp(isViewer) {
             const allRows = csvText.trim().split('\n');
 
             // --- Bagian 1: Proses Tabel Log Kesalahan (Struktur Baru) ---
-            livechatTableBody.innerHTML = "";
+            livechatTableBody.innerHTML = ""; // Kosongkan tabel
+            let currentDate = "Tidak ada tanggal";
             let dataFound = false;
 
-            // Langsung lewati 3 baris pertama (baris kosong, judul, header)
+            // Langsung lewati 3 baris pertama
             const dataRows = allRows.slice(3);
 
             for (const rowText of dataRows) {
-                if (rowText.trim() === '' || rowText.toUpperCase().startsWith(',,,')) continue; // Abaikan baris kosong
-                if (rowText.toUpperCase().includes('TOTAL')) break; // Berhenti jika menemukan total
+                if (rowText.trim() === '' || rowText.toUpperCase().includes('TOTAL')) break;
 
                 const columns = rowText.split(',').map(col => col.trim().replace(/^"|"$/g, ''));
                 
-                // Cek apakah ini baris tanggal (kolom A kosong, kolom B berisi tanggal)
-                const isDateRow = (columns[0] || '').trim() === '' && /^\d{2}\/\d{2}\/\d{4}$/.test((columns[1] || '').trim());
+                // Cek apakah ini baris tanggal (kolom pertama kosong, kolom kedua berisi tanggal)
+                const potentialDate = (columns[1] || '').trim();
+                const isDateRow = /^\d{2}\/\d{2}\/\d{4}$/.test(potentialDate) && (columns[0] || '').trim() === '';
 
                 if (isDateRow) {
-                    const dateSeparator = columns[1].trim();
-                    livechatTableBody.innerHTML += `<tr class="date-separator"><td colspan="3">${dateSeparator}</td></tr>`;
-                } else if (columns.length >= 4) {
-                    // Jika bukan baris tanggal, anggap sebagai baris data
+                    currentDate = potentialDate;
+                    continue; // Ini baris tanggal, lanjut ke baris berikutnya
+                }
+
+                // Jika bukan baris tanggal, anggap sebagai baris data
+                if (columns.length >= 4) {
                     const namaCS = (columns[0] || '').trim();
-                    const link = (columns[2] || '').trim(); // Link sekarang ada di kolom C
                     const jenisKesalahan = (columns[3] || '').trim();
 
                     if (namaCS || jenisKesalahan) {
                         dataFound = true;
-                        // Kolom Tanggal sekarang dikosongkan karena sudah ada di separator
-                        livechatTableBody.innerHTML += `<tr><td></td><td>${namaCS}</td><td style="white-space: normal;">${jenisKesalahan}</td></tr>`;
+                        livechatTableBody.innerHTML += `<tr><td>${currentDate}</td><td>${namaCS}</td><td style="white-space: normal;">${jenisKesalahan}</td></tr>`;
                     }
                 }
             }
