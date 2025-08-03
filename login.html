@@ -22,7 +22,6 @@
                     <a class="nav-link" href="#" id="nav-boxnama"><i class="bi bi-person-badge"></i> BOX NAMA</a>
                     <a class="nav-link" href="#" id="nav-datastaff"><i class="bi bi-people-fill"></i> DATA STAFF</a>
                     <a class="nav-link" href="#" id="nav-livechat"><i class="bi bi-chat-dots-fill"></i> CS LIVECHAT</a>
-                    <a class="nav-link" href="#" id="nav-rekening"><i class="bi bi-bar-chart-line-fill"></i> REKENING TERTINGGI</a>
                     <a class="nav-link" href="#" id="nav-tambah"><i class="bi bi-plus-circle-fill"></i> TAMBAH</a>
                     <a class="nav-link" href="#" id="logout-btn" style="color: #ff4d4d;"><i class="bi bi-box-arrow-right"></i> LOGOUT</a>
                 </div>
@@ -114,17 +113,6 @@
                     </div>
                 </div>
             </section>
-
-            <section id="page-rekening" style="display: none;">
-                <div class="card">
-                    <div class="card-header"><i class="bi bi-bar-chart-line-fill"></i> Rekening Kesalahan Tertinggi per Staff</div>
-                    <div class="card-body">
-                        <div class="chart-container">
-                            <canvas id="errors-chart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </section>
             
             <section id="page-tambah" style="display: none;"><div class="card"><div class="card-header"><i class="bi bi-clipboard-plus"></i> Salin & Tempel Laporan</div><div class="card-body"><form id="auto-parser-form"><textarea id="report-input" placeholder="Tempelkan seluruh teks laporan di sini..."></textarea><div class="button-wrapper"><button type="submit" class="btn btn__primary">Proses & Simpan</button></div></form><div id="message-area"></div></div></div></section>
         </main>
@@ -154,7 +142,7 @@
     </div>
     
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Library ini tidak digunakan, tapi tidak apa-apa jika tetap ada -->
     <script type="module" src="app.js"></script>
 </body>
 </html>
