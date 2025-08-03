@@ -9,11 +9,13 @@ function initializeApp(isViewer) {
     const navDataStaff = document.getElementById('nav-datastaff');
     const navTambah = document.getElementById('nav-tambah');
     const navLivechat = document.getElementById('nav-livechat');
+    const navRekening = document.getElementById('nav-rekening');
     const pageKesalahan = document.getElementById('page-kesalahan');
     const pageBoxNama = document.getElementById('page-boxnama');
     const pageDataStaff = document.getElementById('page-datastaff');
     const pageTambah = document.getElementById('page-tambah');
     const pageLivechat = document.getElementById('page-livechat');
+    const pageRekening = document.getElementById('page-rekening');
     const form = document.getElementById('auto-parser-form');
     const reportInput = document.getElementById('report-input');
     const messageArea = document.getElementById('message-area');
@@ -42,8 +44,10 @@ function initializeApp(isViewer) {
     const closeTotalErrorsModalBtn = document.querySelector('#total-errors-modal .modal-close');
     const totalErrorsTableBody = document.getElementById('total-errors-table-body');
     const boxNamaSearchEl = document.getElementById('box-nama-search');
+    const errorsChartCanvas = document.getElementById('errors-chart');
 
     let staffErrorTotals = [];
+    let errorsChart = null;
 
     // --- KONEKSI KE FIREBASE COLLECTIONS ---
     const errorsCollectionRef = collection(db, "kesalahan");
@@ -68,13 +72,14 @@ function initializeApp(isViewer) {
     }
 
     function showPage(pageId) {
-        [pageKesalahan, pageBoxNama, pageDataStaff, pageTambah, pageLivechat].forEach(p => p.style.display = 'none');
-        [navKesalahan, navBoxNama, navDataStaff, navTambah, navLivechat].forEach(n => n.classList.remove('active'));
+        [pageKesalahan, pageBoxNama, pageDataStaff, pageTambah, pageLivechat, pageRekening].forEach(p => p.style.display = 'none');
+        [navKesalahan, navBoxNama, navDataStaff, navTambah, navLivechat, navRekening].forEach(n => n.classList.remove('active'));
         let pageToShow, navToActivate;
         switch (pageId) {
             case 'boxnama': pageToShow = pageBoxNama; navToActivate = navBoxNama; renderStaffSummary(); break;
             case 'datastaff': pageToShow = pageDataStaff; navToActivate = navDataStaff; renderStaffTable(); break;
             case 'livechat': pageToShow = pageLivechat; navToActivate = navLivechat; fetchAndRenderLivechatData(); break;
+            case 'rekening': pageToShow = pageRekening; navToActivate = navRekening; renderErrorsChart(); break;
             case 'tambah': pageToShow = pageTambah; navToActivate = navTambah; break;
             default: pageToShow = pageKesalahan; navToActivate = navKesalahan; updateDashboard(); break;
         }
@@ -82,10 +87,9 @@ function initializeApp(isViewer) {
         navToActivate.classList.add('active');
     }
 
-    // === FUNGSI GOOGLE SHEET YANG DIPERBAIKI UNTUK MENGAMBIL KOLOM A:C ===
+    // === FUNGSI GOOGLE SHEET YANG DIPERBAIKI SESUAI PERMINTAAN TERAKHIR ===
     async function fetchAndRenderLivechatData() {
         const googleSheetUrl = `https://docs.google.com/spreadsheets/d/e/2PACX-1vTx_JjCSDeqgGnDqT8oWbT_zcVOX2W8UMx1oG5aCsvKHzWxhXNdMGOWbK-v6jzK0twmiOM4LGpZuQzJ/pub?gid=593722510&single=true&output=csv&_=${new Date().getTime()}`;
-
         livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center;">Mengambil data...</td></tr>`;
 
         try {
@@ -95,28 +99,33 @@ function initializeApp(isViewer) {
             const csvText = await response.text();
             const allRows = csvText.trim().split('\n');
 
-            // --- Bagian 1: Proses Tabel Log Kesalahan (Kolom A, B, C) ---
-            livechatTableBody.innerHTML = ""; // Kosongkan tabel
+            // --- Bagian 1: Proses Tabel Log Kesalahan (Struktur Baru) ---
+            livechatTableBody.innerHTML = "";
             let dataFound = false;
 
             // Langsung lewati 3 baris pertama (baris kosong, judul, header)
             const dataRows = allRows.slice(3);
 
             for (const rowText of dataRows) {
-                // Berhenti jika menemukan baris kosong atau baris total
-                if (rowText.trim() === '' || rowText.toUpperCase().startsWith(',,,')) break;
+                if (rowText.trim() === '' || rowText.toUpperCase().startsWith(',,,')) continue;
+                if (rowText.toUpperCase().includes('TOTAL')) break;
 
-                // Pisahkan kolom dengan koma
                 const columns = rowText.split(',').map(col => col.trim().replace(/^"|"$/g, ''));
                 
-                if (columns.length >= 3) {
-                    const tanggal = (columns[0] || '').trim();
-                    const namaCS = (columns[1] || '').trim();
-                    const jenisKesalahan = (columns[2] || '').trim();
+                const isDateRow = (columns[0] || '').trim() === '' && /^\d{2}\/\d{2}\/\d{4}$/.test((columns[1] || '').trim());
 
-                    if (tanggal || namaCS || jenisKesalahan) {
+                if (isDateRow) {
+                    const dateSeparator = columns[1].trim();
+                    livechatTableBody.innerHTML += `<tr class="date-separator"><td colspan="3">${dateSeparator}</td></tr>`;
+                } else if (columns.length >= 4) {
+                    const namaCS = (columns[0] || '').trim();
+                    // Kolom ke-3 (indeks 2) yang berisi link kita abaikan.
+                    const jenisKesalahan = (columns[3] || '').trim();
+
+                    if (namaCS || jenisKesalahan) {
                         dataFound = true;
-                        livechatTableBody.innerHTML += `<tr><td>${tanggal}</td><td>${namaCS}</td><td style="white-space: normal;">${jenisKesalahan}</td></tr>`;
+                        // Kolom Tanggal dikosongkan karena sudah ada di separator
+                        livechatTableBody.innerHTML += `<tr><td></td><td>${namaCS}</td><td style="white-space: normal;">${jenisKesalahan}</td></tr>`;
                     }
                 }
             }
@@ -132,7 +141,6 @@ function initializeApp(isViewer) {
                 const headerColumns = allRows[totalsHeaderIndex].split(',');
                 const nameIndex = headerColumns.findIndex(h => h.toUpperCase().includes('NAMA STAFF'));
                 const totalIndex = headerColumns.findIndex(h => h.toUpperCase().includes('TOTAL KESALAHAN'));
-
                 if (nameIndex !== -1 && totalIndex !== -1) {
                     for (let i = totalsHeaderIndex + 1; i < allRows.length; i++) {
                         const rowText = allRows[i];
@@ -148,7 +156,6 @@ function initializeApp(isViewer) {
                     }
                 }
             }
-
         } catch (error) {
             console.error("Gagal memproses data Google Sheet:", error);
             livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color: #ff4d4d;">Terjadi kesalahan. Periksa console log.</td></tr>`;
@@ -370,8 +377,84 @@ function initializeApp(isViewer) {
         XLSX.writeFile(workbook, "Data_Staff.xlsx");
     }
 
+    function renderErrorsChart() {
+        if (errorsChart) {
+            errorsChart.destroy();
+        }
+
+        if (staffErrorTotals.length === 0) {
+            const ctx = errorsChartCanvas.getContext('2d');
+            ctx.clearRect(0, 0, errorsChartCanvas.width, errorsChartCanvas.height);
+            ctx.fillStyle = 'hsl(144 50 94 / 70%)';
+            ctx.textAlign = 'center';
+            ctx.font = "16px 'Raleway', sans-serif";
+            ctx.fillText("Data belum dimuat. Silakan buka tab 'CS LIVECHAT' terlebih dahulu untuk memuat data.", errorsChartCanvas.width / 2, 50);
+            return;
+        }
+
+        const sortedData = [...staffErrorTotals].sort((a, b) => parseInt(b.count) - parseInt(a.count));
+
+        const chartLabels = sortedData.map(item => item.name);
+        const chartData = sortedData.map(item => parseInt(item.count));
+
+        const maxErrors = Math.max(...chartData);
+        const minErrors = Math.min(...chartData);
+
+        const backgroundColors = chartData.map(count => {
+            if (count === maxErrors) return 'hsla(0, 70%, 50%, 0.7)';
+            if (count === minErrors) return 'hsla(144, 70%, 40%, 0.7)';
+            return 'hsla(220, 50%, 50%, 0.7)';
+        });
+
+        const borderColors = chartData.map(count => {
+            if (count === maxErrors) return 'hsl(0, 70%, 50%)';
+            if (count === minErrors) return 'hsl(144, 70%, 40%)';
+            return 'hsl(220, 50%, 50%)';
+        });
+
+        const ctx = errorsChartCanvas.getContext('2d');
+        errorsChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: 'Total Kesalahan',
+                    data: chartData,
+                    backgroundColor: backgroundColors,
+                    borderColor: borderColors,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { color: 'hsl(144 50 94 / 70%)' }
+                    },
+                    x: {
+                        ticks: { color: 'hsl(144 50 94 / 70%)' }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: 'Total Kesalahan per Staff',
+                        color: '#fff',
+                        font: { size: 18 }
+                    }
+                }
+            }
+        });
+    }
+
     // --- BAGIAN 4: EVENT LISTENERS ---
-    [navKesalahan, navBoxNama, navDataStaff, navTambah, navLivechat].forEach(nav => nav.addEventListener('click', (e) => {
+    [navKesalahan, navBoxNama, navDataStaff, navTambah, navLivechat, navRekening].forEach(nav => nav.addEventListener('click', (e) => {
         e.preventDefault();
         showPage(nav.id.split('-')[1]);
     }));
@@ -515,4 +598,4 @@ onAuthStateChanged(auth, (user) => {
     } else {
         window.location.href = 'login.html';
     }
-});
+});```
