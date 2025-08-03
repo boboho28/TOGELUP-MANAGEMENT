@@ -41,7 +41,7 @@ function initializeApp(isViewer) {
     const totalErrorsModal = document.getElementById('total-errors-modal');
     const closeTotalErrorsModalBtn = document.querySelector('#total-errors-modal .modal-close');
     const totalErrorsTableBody = document.getElementById('total-errors-table-body');
-    const boxNamaSearchEl = document.getElementById('box-nama-search'); // Elemen baru
+    const boxNamaSearchEl = document.getElementById('box-nama-search');
 
     let staffErrorTotals = [];
 
@@ -82,42 +82,65 @@ function initializeApp(isViewer) {
         navToActivate.classList.add('active');
     }
 
+    // === FUNGSI GOOGLE SHEET DENGAN LOGIKA BARU YANG LEBIH ANDAL ===
     async function fetchAndRenderLivechatData() {
         const googleSheetUrl = `https://docs.google.com/spreadsheets/d/e/2PACX-1vTx_JjCSDeqgGnDqT8oWbT_zcVOX2W8UMx1oG5aCsvKHzWxhXNdMGOWbK-v6jzK0twmiOM4LGpZuQzJ/pub?gid=593722510&single=true&output=csv&_=${new Date().getTime()}`;
+
         livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center;">Mengambil data...</td></tr>`;
+
         try {
             const response = await fetch(googleSheetUrl);
             if (!response.ok) throw new Error(`Gagal mengambil data. Status: ${response.status}.`);
+            
             const csvText = await response.text();
             const allRows = csvText.trim().split('\n');
 
-            let headerIndex = allRows.findIndex(row => row.toUpperCase().includes('TANGGAL') && row.toUpperCase().includes('NAMA CS'));
-            if (headerIndex !== -1) {
-                livechatTableBody.innerHTML = "";
-                for (let i = headerIndex + 1; i < allRows.length; i++) {
-                    const rowText = allRows[i];
-                    if (rowText.trim() === '' || rowText.toUpperCase().includes('TOTAL')) break;
-                    const parts = rowText.split(',');
-                    if (parts.length >= 4) { // Membutuhkan setidaknya 4 kolom untuk A, B, C, D
-                        const tanggal = (parts[0] || '').trim().replace(/^"|"$/g, '');
-                        const namaCS = (parts[2] || '').trim().replace(/^"|"$/g, '');
-                        const jenisKesalahan = parts.slice(3).join(',').trim().replace(/^"|"$/g, '');
+            // --- Bagian 1: Proses Tabel Log Kesalahan (Struktur Baru) ---
+            livechatTableBody.innerHTML = ""; // Kosongkan tabel
+            let currentDate = "Tidak ada tanggal";
+            let dataFound = false;
 
-                        if (tanggal || namaCS || jenisKesalahan) {
-                            livechatTableBody.innerHTML += `<tr><td>${tanggal}</td><td>${namaCS}</td><td style="white-space: normal;">${jenisKesalahan}</td></tr>`;
-                        }
+            // Langsung lewati 3 baris pertama
+            const dataRows = allRows.slice(3);
+
+            for (const rowText of dataRows) {
+                if (rowText.trim() === '' || rowText.toUpperCase().includes('TOTAL')) break;
+
+                const columns = rowText.split(',').map(col => col.trim().replace(/^"|"$/g, ''));
+                
+                // Cek apakah ini baris tanggal (kolom pertama kosong, kolom kedua berisi tanggal)
+                const potentialDate = (columns[1] || '').trim();
+                const isDateRow = /^\d{2}\/\d{2}\/\d{4}$/.test(potentialDate) && (columns[0] || '').trim() === '';
+
+                if (isDateRow) {
+                    currentDate = potentialDate;
+                    continue; // Ini baris tanggal, lanjut ke baris berikutnya
+                }
+
+                // Jika bukan baris tanggal, anggap sebagai baris data
+                if (columns.length >= 4) {
+                    const namaCS = (columns[0] || '').trim();
+                    const jenisKesalahan = (columns[3] || '').trim();
+
+                    if (namaCS || jenisKesalahan) {
+                        dataFound = true;
+                        livechatTableBody.innerHTML += `<tr><td>${currentDate}</td><td>${namaCS}</td><td style="white-space: normal;">${jenisKesalahan}</td></tr>`;
                     }
                 }
-            } else {
-                livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; font-style:italic;">Header log kesalahan tidak ditemukan.</td></tr>`;
             }
 
+            if (!dataFound) {
+                livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; font-style:italic;">Tidak ada data valid yang dapat ditampilkan.</td></tr>`;
+            }
+
+            // --- Bagian 2: Proses Tabel Total Kesalahan (Kolom H, I) ---
             staffErrorTotals = [];
             let totalsHeaderIndex = allRows.findIndex(row => row.toUpperCase().includes('NAMA STAFF') && row.toUpperCase().includes('TOTAL KESALAHAN'));
             if (totalsHeaderIndex !== -1) {
                 const headerColumns = allRows[totalsHeaderIndex].split(',');
                 const nameIndex = headerColumns.findIndex(h => h.toUpperCase().includes('NAMA STAFF'));
                 const totalIndex = headerColumns.findIndex(h => h.toUpperCase().includes('TOTAL KESALAHAN'));
+
                 if (nameIndex !== -1 && totalIndex !== -1) {
                     for (let i = totalsHeaderIndex + 1; i < allRows.length; i++) {
                         const rowText = allRows[i];
@@ -133,6 +156,7 @@ function initializeApp(isViewer) {
                     }
                 }
             }
+
         } catch (error) {
             console.error("Gagal memproses data Google Sheet:", error);
             livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color: #ff4d4d;">Terjadi kesalahan. Periksa console log.</td></tr>`;
@@ -383,7 +407,7 @@ function initializeApp(isViewer) {
 
     [fromDateEl, toDateEl, employeeSearchEl].forEach(el => el.addEventListener('input', updateDashboard));
     staffNameSearchEl.addEventListener('input', renderStaffTable);
-    boxNamaSearchEl.addEventListener('input', renderStaffSummary); // Event listener baru
+    boxNamaSearchEl.addEventListener('input', renderStaffSummary);
     addStaffBtn.addEventListener('click', () => { if(isViewer) return; staffForm.reset(); document.getElementById('staff-id').value = ''; modalTitle.textContent = 'Tambah Staff Baru'; staffFormModal.style.display = 'flex'; });
     
     closeFormModalBtn.addEventListener('click', () => { staffFormModal.style.display = 'none'; });
