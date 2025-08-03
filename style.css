@@ -132,3 +132,8 @@ tbody tr:hover { background: hsla(144deg 50% 50% / 20%); }
     font-size: 14px;
     font-weight: bold;
 }
+
+/* === GAYA BARU DITAMBAHKAN DI SINI === */
+.search-container {
+    margin-bottom: 20px;
+}
