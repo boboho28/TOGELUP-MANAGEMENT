@@ -82,8 +82,8 @@ function initializeApp(isViewer) {
         navToActivate.classList.add('active');
     }
 
+    // === FUNGSI GOOGLE SHEET YANG DIPERBAIKI UNTUK MENGAMBIL KOLOM A:C ===
     async function fetchAndRenderLivechatData() {
-        // Menggunakan URL baru yang Anda berikan, dengan trik anti-cache
         const googleSheetUrl = `https://docs.google.com/spreadsheets/d/e/2PACX-1vTx_JjCSDeqgGnDqT8oWbT_zcVOX2W8UMx1oG5aCsvKHzWxhXNdMGOWbK-v6jzK0twmiOM4LGpZuQzJ/pub?gid=593722510&single=true&output=csv&_=${new Date().getTime()}`;
 
         livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center;">Mengambil data...</td></tr>`;
@@ -95,36 +95,28 @@ function initializeApp(isViewer) {
             const csvText = await response.text();
             const allRows = csvText.trim().split('\n');
 
-            // --- Bagian 1: Proses Tabel Log Kesalahan (Struktur Baru) ---
+            // --- Bagian 1: Proses Tabel Log Kesalahan (Kolom A, B, C) ---
             livechatTableBody.innerHTML = ""; // Kosongkan tabel
-            let currentDate = "Tidak ada tanggal";
             let dataFound = false;
 
-            // Langsung lewati 3 baris pertama
+            // Langsung lewati 3 baris pertama (baris kosong, judul, header)
             const dataRows = allRows.slice(3);
 
             for (const rowText of dataRows) {
-                if (rowText.trim() === '' || rowText.toUpperCase().includes('TOTAL')) break;
+                // Berhenti jika menemukan baris kosong atau baris total
+                if (rowText.trim() === '' || rowText.toUpperCase().startsWith(',,,')) break;
 
+                // Pisahkan kolom dengan koma
                 const columns = rowText.split(',').map(col => col.trim().replace(/^"|"$/g, ''));
                 
-                // Cek apakah ini baris tanggal (kolom pertama kosong, kolom kedua berisi tanggal)
-                const potentialDate = (columns[1] || '').trim();
-                const isDateRow = /^\d{2}\/\d{2}\/\d{4}$/.test(potentialDate) && (columns[0] || '').trim() === '';
+                if (columns.length >= 3) {
+                    const tanggal = (columns[0] || '').trim();
+                    const namaCS = (columns[1] || '').trim();
+                    const jenisKesalahan = (columns[2] || '').trim();
 
-                if (isDateRow) {
-                    currentDate = potentialDate;
-                    continue; // Ini baris tanggal, lanjut ke baris berikutnya
-                }
-
-                // Jika bukan baris tanggal, anggap sebagai baris data
-                if (columns.length >= 4) {
-                    const namaCS = (columns[0] || '').trim();
-                    const jenisKesalahan = (columns[3] || '').trim();
-
-                    if (namaCS || jenisKesalahan) {
+                    if (tanggal || namaCS || jenisKesalahan) {
                         dataFound = true;
-                        livechatTableBody.innerHTML += `<tr><td>${currentDate}</td><td>${namaCS}</td><td style="white-space: normal;">${jenisKesalahan}</td></tr>`;
+                        livechatTableBody.innerHTML += `<tr><td>${tanggal}</td><td>${namaCS}</td><td style="white-space: normal;">${jenisKesalahan}</td></tr>`;
                     }
                 }
             }
