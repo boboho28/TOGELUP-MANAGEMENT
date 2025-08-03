@@ -41,6 +41,7 @@ function initializeApp(isViewer) {
     const totalErrorsModal = document.getElementById('total-errors-modal');
     const closeTotalErrorsModalBtn = document.querySelector('#total-errors-modal .modal-close');
     const totalErrorsTableBody = document.getElementById('total-errors-table-body');
+    const boxNamaSearchEl = document.getElementById('box-nama-search'); // Elemen baru
 
     let staffErrorTotals = [];
 
@@ -61,11 +62,8 @@ function initializeApp(isViewer) {
 
     // --- FUNGSI-FUNGSI UTAMA ---
 
-    // === FUNGSI NORMALISASI NAMA STAFF YANG DISEMPURNAKAN ===
     function normalizeStaffName(name) {
         if (!name || typeof name !== 'string') return '';
-        // Ganti semua karakter yang BUKAN huruf, angka, atau spasi dengan satu spasi.
-        // Kemudian rapikan spasi ganda menjadi tunggal.
         return name.replace(/[^a-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
     }
 
@@ -92,6 +90,7 @@ function initializeApp(isViewer) {
             if (!response.ok) throw new Error(`Gagal mengambil data. Status: ${response.status}.`);
             const csvText = await response.text();
             const allRows = csvText.trim().split('\n');
+
             let headerIndex = allRows.findIndex(row => row.toUpperCase().includes('TANGGAL') && row.toUpperCase().includes('NAMA CS'));
             if (headerIndex !== -1) {
                 livechatTableBody.innerHTML = "";
@@ -99,10 +98,11 @@ function initializeApp(isViewer) {
                     const rowText = allRows[i];
                     if (rowText.trim() === '' || rowText.toUpperCase().includes('TOTAL')) break;
                     const parts = rowText.split(',');
-                    if (parts.length >= 3) {
+                    if (parts.length >= 4) { // Membutuhkan setidaknya 4 kolom untuk A, B, C, D
                         const tanggal = (parts[0] || '').trim().replace(/^"|"$/g, '');
-                        const namaCS = (parts[1] || '').trim().replace(/^"|"$/g, '');
-                        const jenisKesalahan = parts.slice(2).join(',').trim().replace(/^"|"$/g, '');
+                        const namaCS = (parts[2] || '').trim().replace(/^"|"$/g, '');
+                        const jenisKesalahan = parts.slice(3).join(',').trim().replace(/^"|"$/g, '');
+
                         if (tanggal || namaCS || jenisKesalahan) {
                             livechatTableBody.innerHTML += `<tr><td>${tanggal}</td><td>${namaCS}</td><td style="white-space: normal;">${jenisKesalahan}</td></tr>`;
                         }
@@ -111,6 +111,7 @@ function initializeApp(isViewer) {
             } else {
                 livechatTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; font-style:italic;">Header log kesalahan tidak ditemukan.</td></tr>`;
             }
+
             staffErrorTotals = [];
             let totalsHeaderIndex = allRows.findIndex(row => row.toUpperCase().includes('NAMA STAFF') && row.toUpperCase().includes('TOTAL KESALAHAN'));
             if (totalsHeaderIndex !== -1) {
@@ -156,7 +157,7 @@ function initializeApp(isViewer) {
         let staffName = "Tidak Ditemukan";
         const staffMatch = findValue("Staff");
         if (staffMatch && staffMatch[1]) {
-            staffName = normalizeStaffName(staffMatch[1].trim()); // Normalisasi saat parsing
+            staffName = normalizeStaffName(staffMatch[1].trim());
         }
         return {
             perihal: findValue("Perihal") ? findValue("Perihal")[1].trim() : "Tidak Ditemukan",
@@ -190,7 +191,7 @@ function initializeApp(isViewer) {
         const errors = await getStoredErrors();
         const fromDate = fromDateEl.value ? new Date(fromDateEl.value).setHours(0, 0, 0, 0) : null;
         const toDate = toDateEl.value ? new Date(toDateEl.value).setHours(23, 59, 59, 999) : null;
-        const searchTerm = normalizeStaffName(employeeSearchEl.value.toLowerCase()); // Normalisasi input pencarian
+        const searchTerm = normalizeStaffName(employeeSearchEl.value.toLowerCase());
         let filteredErrors = errors.filter(e => {
             const errorTimestamp = e.createdAt?.toDate();
             if (!errorTimestamp) return false;
@@ -213,15 +214,7 @@ function initializeApp(isViewer) {
         }
         filteredErrors.forEach(err => {
             const deleteButtonHTML = !isViewer ? `<button class="btn btn-sm btn__danger btn-delete-error" data-id="${err.id}"><i class="bi bi-trash-fill"></i></button>` : '';
-            const row = `
-                <tr>
-                    <td>${err.id.substring(0, 6)}...</td>
-                    <td>${err.createdAt ? err.createdAt.toDate().toLocaleString("id-ID") : 'No date'}</td>
-                    <td>${normalizeStaffName(err.staff)}</td>
-                    <td>Staff</td>
-                    <td>${err.perihal}</td>
-                    <td><div class="button-wrapper" style="justify-content: center; margin: 0; gap: 10px;"><button class="btn btn-sm btn__view btn-view-error" data-id="${err.id}"><i class="bi bi-eye-fill"></i></button>${deleteButtonHTML}</div></td>
-                </tr>`;
+            const row = `<tr><td>${err.id.substring(0, 6)}...</td><td>${err.createdAt ? err.createdAt.toDate().toLocaleString("id-ID") : 'No date'}</td><td>${normalizeStaffName(err.staff)}</td><td>Staff</td><td>${err.perihal}</td><td><div class="button-wrapper" style="justify-content: center; margin: 0; gap: 10px;"><button class="btn btn-sm btn__view btn-view-error" data-id="${err.id}"><i class="bi bi-eye-fill"></i></button>${deleteButtonHTML}</div></td></tr>`;
             tableBody.innerHTML += row;
         });
     }
@@ -245,12 +238,17 @@ function initializeApp(isViewer) {
             else if (perihal.includes("withdraw")) staffData[normalizedName].withdraw++;
             else if (perihal.includes("telat")) staffData[normalizedName].telat++;
         });
+
+        const searchTerm = boxNamaSearchEl.value.toLowerCase();
+        const staffNames = Object.keys(staffData).filter(name => name.toLowerCase().includes(searchTerm)).sort();
+        
         staffSummaryContainer.innerHTML = "";
-        const staffNames = Object.keys(staffData).sort();
+
         if (staffNames.length === 0) {
-            staffSummaryContainer.innerHTML = '<p style="text-align:center; font-style:italic;">Belum ada data kesalahan untuk ditampilkan.</p>';
+            staffSummaryContainer.innerHTML = '<p style="text-align:center; font-style:italic;">Tidak ada data staff yang cocok dengan pencarian.</p>';
             return;
         }
+
         staffNames.forEach(name => {
             const data = staffData[name];
             const staffBoxHTML = `<div class="staff-box"><div class="staff-box-header">${name}</div><div class="staff-box-categories"><div class="category-item">Deposit</div><div class="category-item">Withdraw</div><div class="category-item">Telat</div></div><div class="staff-box-counts"><div class="count-item">${data.deposit}</div><div class="count-item">${data.withdraw}</div><div class="count-item">${data.telat}</div></div></div>`;
@@ -384,9 +382,8 @@ function initializeApp(isViewer) {
     });
 
     [fromDateEl, toDateEl, employeeSearchEl].forEach(el => el.addEventListener('input', updateDashboard));
-    
     staffNameSearchEl.addEventListener('input', renderStaffTable);
-    
+    boxNamaSearchEl.addEventListener('input', renderStaffSummary); // Event listener baru
     addStaffBtn.addEventListener('click', () => { if(isViewer) return; staffForm.reset(); document.getElementById('staff-id').value = ''; modalTitle.textContent = 'Tambah Staff Baru'; staffFormModal.style.display = 'flex'; });
     
     closeFormModalBtn.addEventListener('click', () => { staffFormModal.style.display = 'none'; });
